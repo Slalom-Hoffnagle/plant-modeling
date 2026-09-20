@@ -46,7 +46,12 @@ function firstSoilReadyDay(climate: ClimateProfile, plant: Plant): number {
 }
 
 function stageForDay(simulation: PlantSimulation, day: number): GrowthStage {
-  if (day < simulation.plantDay) return "pre_season";
+  if (day < simulation.plantDay) {
+    return simulation.indoorStartDay !== null && day >= simulation.indoorStartDay
+      ? "indoor"
+      : "pre_season";
+  }
+  if (day === simulation.plantDay) return "in_ground";
   if (day < simulation.germinationDay) return "germinating";
   if (day < simulation.germinationDay + simulation.plant.peakPhases.seedling) return "seedling";
 

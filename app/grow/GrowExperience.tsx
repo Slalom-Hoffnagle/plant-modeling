@@ -1,9 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ClimateProfile } from "@/lib/climate";
 import { plants, type Plant } from "@/lib/plants";
 import { dayToScrollY, scrollYToDay, TOTAL_SCROLL_HEIGHT } from "@/lib/scroll";
+import { simulateSeason } from "@/lib/simulator";
+import EventCallout from "@/components/EventCallout";
+import PlantLane from "@/components/PlantLane";
+import SunPrecipRibbon from "@/components/SunPrecipRibbon";
+import TempRibbon from "@/components/TempRibbon";
 
 type SeasonData = { climate: ClimateProfile; plantIds: string[] };
 
@@ -58,7 +63,9 @@ export default function GrowExperience() {
     };
   }, [ready]);
 
-  const selectedPlants = season ? plants.filter((plant) => season.plantIds.includes(plant.id)) : [];
+  const selectedPlants = useMemo(() => season ? plants.filter((plant) => season.plantIds.includes(plant.id)) : [], [season]);
+  const simulation = useMemo(() => season ? simulateSeason(season.climate, selectedPlants) : null, [season, selectedPlants]);
+  const visibleEvents = simulation?.keyEvents.filter((event) => event.dayOfYear <= currentDay).slice(-3) ?? [];
 
   if (!ready) return <main className="min-h-screen bg-[#173b35]" />;
   if (!season) return <main className="min-h-screen bg-[#173b35] p-8 text-[#f3efe4]"><a href="/" className="font-mono text-xs uppercase tracking-[0.2em]">Start a garden model</a></main>;
@@ -82,14 +89,21 @@ export default function GrowExperience() {
       </section>
 
       <section ref={stageRef} className="relative mx-auto min-h-[7300px] max-w-7xl border-t border-[#f3efe4]/15 px-6 sm:px-10 lg:px-16" aria-label="Growing season calendar">
-        <div className="grid min-h-[7300px] grid-cols-[92px_1fr] gap-6 py-8 lg:grid-cols-[150px_1fr] lg:gap-10">
+        <div className="grid min-h-[7300px] grid-cols-[48px_92px_1fr_48px] gap-2 py-8 md:grid-cols-[48px_92px_1fr_48px] lg:grid-cols-[64px_150px_1fr_64px] lg:gap-5">
+          <TempRibbon climate={season.climate} currentDay={currentDay} />
           <DateSpine climate={season.climate} currentDay={currentDay} />
           <div className="relative overflow-hidden border-l border-[#f3efe4]/15 bg-[#244b42]/35">
             <div className="absolute inset-x-0 top-1/2 border-t border-dashed border-[#e7bd72]/35" />
             <div className="absolute left-6 top-6 font-mono text-[10px] uppercase tracking-[0.18em] text-[#f3efe4]/45">Plant story / 365 days</div>
             <div className="absolute bottom-8 left-6 right-6 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.16em] text-[#f3efe4]/40"><span>Begin</span><span>Harvest horizon</span></div>
             <div className="absolute left-0 right-0 h-px bg-[#e7bd72] transition-[top] duration-100" style={{ top: `${(dayToScrollY(currentDay) / TOTAL_SCROLL_HEIGHT) * 100}%` }} />
+            {simulation && <div className="sticky top-[108px] z-10 flex h-[calc(100vh-150px)] min-h-[420px] flex-col justify-end px-4 pb-14 pt-20">
+              <div className="absolute inset-x-4 top-4"><p className="font-mono text-[9px] uppercase tracking-[0.16em] text-[#f3efe4]/45">Live growth stage</p><p className="mt-1 font-serif text-2xl text-[#e7bd72]">{formatDay(currentDay)}</p></div>
+              <div className="relative flex min-h-0 flex-1">{simulation.plants.map((plantSimulation) => <PlantLane key={plantSimulation.plant.id} simulation={plantSimulation} currentDay={currentDay} />)}</div>
+              {simulation.keyEvents.map((event) => <EventCallout key={`${event.dayOfYear}-${event.label}`} event={event} visible={visibleEvents.some((visibleEvent) => visibleEvent.label === event.label)} />)}
+            </div>}
           </div>
+          <SunPrecipRibbon climate={season.climate} currentDay={currentDay} />
         </div>
       </section>
     </main>

@@ -42,4 +42,13 @@ describe("simulateSeason", () => {
     expect(carrot.plantDay).toBeLessThan(climate.lastFrostDayOfYear);
     expect(carrot.seasonEndDay).toBeLessThanOrEqual(climate.firstFrostDayOfYear + 21);
   });
+
+  it("exposes indoor, in-ground, and germinating stage boundaries", () => {
+    const climate = syntheticClimate();
+    const tomato = simulateSeason(climate, [plants[0]]).plants[0];
+
+    expect(tomato.stages[tomato.indoorStartDay! - 1]).toBe("indoor");
+    expect(tomato.stages[tomato.plantDay - 1]).toBe("in_ground");
+    expect(tomato.stages[tomato.plantDay]).toBe("germinating");
+  });
 });
