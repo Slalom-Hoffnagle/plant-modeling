@@ -4,7 +4,7 @@ import { GET } from "@/app/api/climate/route";
 const testZips = ["97401", "10001", "33101", "60601", "98101"];
 
 function response(body: unknown, ok = true, status = 200): Response {
-  return new Response(JSON.stringify(body), { ok, status, headers: { "content-type": "application/json" } });
+  return new Response(JSON.stringify(body), { status: ok ? status : status || 500, headers: { "content-type": "application/json" } });
 }
 
 function climatePayload() {
@@ -19,7 +19,7 @@ function climatePayload() {
       temperature_2m_max: dates.map(() => 70),
       temperature_2m_min: dates.map(() => 45),
       precipitation_sum: dates.map(() => 0.1),
-      soil_temperature_0_to_7cm: dates.map(() => 60),
+      soil_temperature_0_to_7cm_mean: dates.map(() => 60),
     },
   };
 }

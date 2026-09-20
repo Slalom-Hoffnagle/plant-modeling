@@ -25,7 +25,7 @@ export interface OpenMeteoDailyResponse {
   temperature_2m_max: Array<number | null>;
   temperature_2m_min: Array<number | null>;
   precipitation_sum: Array<number | null>;
-  soil_temperature_0_to_7cm: Array<number | null>;
+  soil_temperature_0_to_7cm_mean: Array<number | null>;
 }
 
 export const DAYS_IN_YEAR = 365;

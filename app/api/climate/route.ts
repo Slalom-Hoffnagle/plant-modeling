@@ -43,10 +43,8 @@ async function fetchJson<T>(url: string): Promise<T> {
 }
 
 async function loadProfile(zip: string) {
-  const [location, zone] = await Promise.all([
-    fetchJson<ZipResponse>(`https://api.zippopotam.us/us/${zip}`),
-    fetchJson<ZoneResponse>(`https://phzmapi.org/${zip}.json`),
-  ]);
+  const location = await fetchJson<ZipResponse>(`https://api.zippopotam.us/us/${zip}`);
+  const zone = await fetchJson<ZoneResponse>(`https://phzmapi.org/${zip}.json`).catch(() => ({ zone: "Unknown" }));
   const place = location.places?.[0];
   if (!place) throw new Error("ZIP code was not found");
 
@@ -56,16 +54,24 @@ async function loadProfile(zip: string) {
   const startDate = `${years[0]}-01-01`;
   const endDate = `${years[years.length - 1]}-12-31`;
   const climateUrl = new URL("https://archive-api.open-meteo.com/v1/archive");
-  climateUrl.search = new URLSearchParams({
+  const climateParams = new URLSearchParams({
     latitude: String(lat),
     longitude: String(lng),
     start_date: startDate,
     end_date: endDate,
-    daily: "temperature_2m_max,temperature_2m_min,precipitation_sum,soil_temperature_0_to_7cm",
     temperature_unit: "fahrenheit",
     precipitation_unit: "inch",
     timezone: "auto",
-  }).toString();
+  });
+  for (const variable of [
+    "temperature_2m_max",
+    "temperature_2m_min",
+    "precipitation_sum",
+    "soil_temperature_0_to_7cm_mean",
+  ]) {
+    climateParams.append("daily", variable);
+  }
+  climateUrl.search = climateParams.toString();
   const climate = await fetchJson<{ daily: OpenMeteoDailyResponse }>(climateUrl.toString());
   const daily = climate.daily;
 
@@ -79,7 +85,7 @@ async function loadProfile(zip: string) {
     hardinessZone: zone.zone ?? "Unknown",
     dailyTempMax: averageByCalendarDay([daily], "temperature_2m_max"),
     dailyTempMin: averageByCalendarDay([daily], "temperature_2m_min"),
-    dailySoilTemp: averageByCalendarDay([daily], "soil_temperature_0_to_7cm"),
+    dailySoilTemp: averageByCalendarDay([daily], "soil_temperature_0_to_7cm_mean"),
     dailyPrecip: averageByCalendarDay([daily], "precipitation_sum"),
   });
 }
