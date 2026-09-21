@@ -2,11 +2,12 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ClimateProfile } from "@/lib/climate";
-import { plants, type Plant } from "@/lib/plants";
+import { plants } from "@/lib/plants";
 import { dayToScrollY, scrollYToDay, TOTAL_SCROLL_HEIGHT } from "@/lib/scroll";
 import { simulateSeason } from "@/lib/simulator";
 import EventCallout from "@/components/EventCallout";
 import PlantLane from "@/components/PlantLane";
+import PlantReport from "@/components/PlantReport";
 import SunPrecipRibbon from "@/components/SunPrecipRibbon";
 import TempRibbon from "@/components/TempRibbon";
 
@@ -85,7 +86,7 @@ export default function GrowExperience() {
         <div className="mt-20 grid gap-6 border-y border-[#f3efe4]/15 py-8 sm:grid-cols-3"><Metric label="Last spring frost" value={season.climate.lastFrostDate} /><Metric label="First fall frost" value={season.climate.firstFrostDate} /><Metric label="Frost-free season" value={`${season.climate.frostFreeDays} days`} /></div>
 
         <div className="mt-16 flex items-end justify-between"><div><p className="font-mono text-xs uppercase tracking-[0.2em] text-[#e7bd72]">Your selection</p><h2 className="mt-3 font-serif text-4xl">{selectedPlants.length} plants in the model</h2></div><span className="font-mono text-xs uppercase tracking-[0.14em] text-[#f3efe4]/45">Jan 01 — Dec 31</span></div>
-        <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{selectedPlants.map((plant) => <PlantPreview key={plant.id} plant={plant} />)}</div>
+        <div className="mt-8 space-y-3">{simulation?.plants.map((plantSimulation) => <PlantReport key={plantSimulation.plant.id} simulation={plantSimulation} events={simulation.keyEvents} />)}</div>
       </section>
 
       <section ref={stageRef} className="relative mx-auto min-h-[7300px] max-w-7xl border-t border-[#f3efe4]/15 px-6 sm:px-10 lg:px-16" aria-label="Growing season calendar">
@@ -130,5 +131,3 @@ function formatDay(day: number) {
 }
 
 function Metric({ label, value }: { label: string; value: string }) { return <div><p className="font-mono text-[10px] uppercase tracking-[0.15em] text-[#f3efe4]/45">{label}</p><p className="mt-2 font-serif text-2xl text-[#e7bd72]">{value}</p></div>; }
-
-function PlantPreview({ plant }: { plant: Plant }) { return <article className="flex items-center gap-4 border border-[#f3efe4]/12 bg-[#244b42] p-4"><span className="flex h-12 w-12 shrink-0 items-end justify-center rounded-full bg-[#d5dfc5] pb-2"><span className="h-8 w-1 rotate-12 bg-[#41694b]" /><span className="-ml-2 h-4 w-3 -rotate-45 rounded-full bg-[#6e9a62]" /></span><div><h3 className="font-serif text-xl">{plant.name}</h3><p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[#f3efe4]/45">{plant.category} · {plant.daysToMaturity} days to maturity</p></div></article>; }

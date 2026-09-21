@@ -8,7 +8,7 @@ function response(body: unknown, ok = true, status = 200): Response {
 }
 
 function climatePayload() {
-  const dates = Array.from({ length: 365 }, (_, index) => {
+  const dates = Array.from({ length: 366 }, (_, index) => {
     const date = new Date(Date.UTC(2024, 0, index + 1));
     return date.toISOString().slice(0, 10);
   });
@@ -65,5 +65,15 @@ describe("GET /api/climate", () => {
 
     expect(result.status).toBe(400);
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("keeps March and December aligned when the source includes leap day", async () => {
+    const result = await GET(new Request("http://localhost/api/climate?zip=97401"));
+    const profile = await result.json();
+
+    expect(profile.dailyTempMax).toHaveLength(365);
+    expect(profile.dailyTempMax[59]).toBe(70);
+    expect(profile.dailyTempMax[60]).toBe(70);
+    expect(profile.dailyTempMax[364]).toBe(70);
   });
 });

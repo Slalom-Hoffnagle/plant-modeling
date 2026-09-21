@@ -55,8 +55,11 @@ export function averageByCalendarDay(
   for (const year of years) {
     year.time.forEach((dateString, index) => {
       const date = new Date(`${dateString}T00:00:00Z`);
+      if (date.getUTCMonth() === 1 && date.getUTCDate() === 29) {
+        return;
+      }
       const month = date.getUTCMonth();
-      const dateInReferenceYear = new Date(Date.UTC(2024, month, date.getUTCDate()));
+      const dateInReferenceYear = new Date(Date.UTC(2023, month, date.getUTCDate()));
       const normalizedDay = dayOfYear(dateInReferenceYear) - 1;
       const value = year[field][index];
 
