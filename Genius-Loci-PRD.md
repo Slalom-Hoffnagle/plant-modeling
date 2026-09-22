@@ -3,7 +3,7 @@
 
 **Author:** Carl Hoffnagle  
 **Date:** September 2026  
-**Status:** Implementation baseline — M1–M5 complete; M6–M8 planned  
+**Status:** Implementation baseline — M1–M5 complete; M6–M7 planned  
 **Stack:** Next.js 14 · React 18 · TypeScript · Tailwind CSS · native browser scrolling  
 **Deployment:** Vercel  
 
@@ -13,7 +13,7 @@
 
 Genius Loci is a web application that models a personalized growing season for a home gardener. The user specifies their location and selects up to 6 plants. The app then renders a full-page, scroll-driven narrative of their growing year — from soil warm-up through germination, sprout emergence, growth phases, blossom, fruit, and harvest — with each event anchored to real dates and driven by real climate data for their specific location.
 
-As the user scrolls down, time advances. The illustrations grow, dates and callouts appear, and the season unfolds. A continuous climate backdrop carries daily air-temperature highs and lows plus average precipitation behind the plant lanes. A locally relevant weed layer remains planned for a later milestone.
+As the user scrolls down, time advances. The illustrations grow, dates and callouts appear, and the season unfolds. A continuous climate backdrop carries daily air-temperature highs and lows plus average precipitation behind the plant lanes.
 
 The experience is part planner, part almanac, part illustrated story. It is based on science but designed to feel alive.
 
@@ -196,51 +196,6 @@ interface PlantMorphology {
   stemColor: string                // CSS color
   leafColor: string                // CSS color
   leafColorVariant: string         // slightly different tone for depth
-}
-```
-
----
-
-### 3.6 Weed Data
-
-**Primary source:** University extension service literature (WVU, UMD, Montana State, UGA)  
-**Weed germination model:** Soil temperature threshold + GDD accumulation (same model as crops)
-
-Key thresholds from extension research:
-
-| Weed | Min Soil Temp (°F) | GDD Base | Notes |
-|---|---|---|---|
-| Hairy bittercress | 34 | 34 | One of the earliest; winter annual |
-| Chickweed | 35 | 35 | Very early spring and fall |
-| Henbit | 34 | 34 | Overwinters, blooms early spring |
-| Dandelion | 50 | 40 | Spring and fall flushes |
-| Lamb's quarters | 45 | 40 | Early-mid spring |
-| Wild mustard | 40 | 40 | Cool-season annual |
-| Crabgrass (large) | 55 | 50 | GDD 300–350 from Jan 1 |
-| Crabgrass (smooth) | 55 | 50 | GDD 150 from Jan 1 |
-| Purslane | 60 | 50 | Mid-summer |
-| Pigweed | 60 | 50 | Mid-summer; prolific seeder |
-| Nutsedge | 60 | 50 | Mid-summer; loves wet soil |
-| Field bindweed | 55 | 45 | Perennial; persistent |
-| Ground ivy | 40 | 40 | Spring and fall |
-| Wood sorrel | 50 | 40 | Spring and fall |
-| Plantain | 50 | 40 | Spring; common in compacted soil |
-
-**Regional relevance mapping:** Each weed entry includes a `regions` field (array of US regional codes) so the weed layer only shows weeds plausible for the user's state.
-
-**Weed data structure:**
-
-```typescript
-interface Weed {
-  id: string
-  name: string
-  soilTempMin: number
-  gddBase: number
-  gddToActiveGrowth: number
-  peakSeason: 'early-spring' | 'spring' | 'summer' | 'fall' | 'year-round'
-  regions: USRegion[]
-  description: string
-  managementTip: string
 }
 ```
 
@@ -452,17 +407,6 @@ A continuous field behind the plant lanes showing:
 - Color: blue for rain, white for snow (days where temp < 32°F)
 - Wet months (e.g. Pacific Northwest winters) vs. dry summers are immediately visible
 
-### 6.8 Weed layer — planned (M6)
-
-When toggled on:
-- A semi-transparent red/amber overlay appears behind the plant lanes
-- Each active weed species is shown as a small labeled band that spans its active germination/growth window
-- Bands are stackable — multiple weeds active at once are shown as adjacent thin bands
-- Weed species are filtered to those common in the user's region (derived from state abbreviation)
-- A small weed legend floats at the top of the main stage listing which weeds are currently shown
-
----
-
 ## 7. Technical Architecture
 
 ### 7.1 Stack
@@ -555,9 +499,8 @@ export function dayToScrollY(dayOfYear: number): number {
 | FR-10 | Show continuous daily high/low air temperature with the 32°F frost line marked | Implemented |
 | FR-11 | Show continuous average daily precipitation behind the plant lanes | Implemented |
 | FR-12 | Generate key events and provide one-at-a-time navigation to their dates | Implemented |
-| FR-13 | Provide a toggleable weed layer showing region-appropriate weed germination windows | Planned (M6) |
-| FR-14 | Attribute Open-Meteo data per CC BY 4.0 license requirements | Planned (M7) |
-| FR-15 | Run without authentication or server-side saved gardens; use browser storage for active/recent selections | Implemented |
+| FR-13 | Attribute Open-Meteo data per CC BY 4.0 license requirements | Planned (M6) |
+| FR-14 | Run without authentication or server-side saved gardens; use browser storage for active/recent selections | Implemented |
 
 ---
 
@@ -588,8 +531,6 @@ export function dayToScrollY(dayOfYear: number): number {
 
 5. **Plant catalog completeness:** ~~Resolved.~~ OSU Extension degree-day models are the primary GDD source. Where per-variety GDD data is unavailable, fall back to `daysToMaturity × estimatedDailyGDD` derived from the location's growing season profile. This is an accepted approximation for v1.
 
-6. **Weed geographic precision:** Open for M6. A state-based regional model is the current proposal; county-level extension records may improve precision later.
-
 ---
 
 ## 11. Data Attribution Requirements
@@ -600,9 +541,8 @@ export function dayToScrollY(dayOfYear: number): number {
 | OpenPlantDB | CC0 (public domain) | None required; credit appreciated |
 | phzmapi.org / USDA PRISM | Public domain | None required |
 | api.zippopotam.us | Free public use | None required |
-| Weed data (extension services) | Public domain | None required |
 
-Attribution for Open-Meteo must appear in the app footer. This UI remains planned for M7.
+Attribution for Open-Meteo must appear in the app footer. This UI remains planned for M6.
 
 ---
 
@@ -627,9 +567,8 @@ Attribution for Open-Meteo must appear in the app footer. This UI remains planne
 | M3 — Scroll scaffold | Shared scroll dimensions, date spine, and day-of-year mapping | Complete |
 | M4 — Plant lanes | Up to 6 bottom-anchored lanes, growth stages, and navigable key events | Complete |
 | M5 — Climate backdrop | Daily temperature and precipitation fields with live values | Complete |
-| M6 — Weed layer | Regional weed data, toggle, and date-window bands | Planned |
-| M7 — Polish | Complete reduced-motion coverage, error-state review, attribution footer, accessibility and performance audits | In progress |
-| M8 — Deploy | Production deployment and 5 tests with gardeners | Planned |
+| M6 — Polish | Complete reduced-motion coverage, error-state review, attribution footer, accessibility and performance audits | In progress |
+| M7 — Deploy | Production deployment and 5 tests with gardeners | Planned |
 
 ---
 

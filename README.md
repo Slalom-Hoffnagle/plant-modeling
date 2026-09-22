@@ -41,4 +41,4 @@ There are no user accounts or server-side saved gardens.
 
 ## Product Scope
 
-[Genius-Loci-PRD.md](Genius-Loci-PRD.md) records the product requirements and implementation status. Milestones M1-M5 are implemented. Weed modeling, complete attribution UI, broader accessibility work, deployment, and user testing remain planned.
+[Genius-Loci-PRD.md](Genius-Loci-PRD.md) records the product requirements and implementation status. Milestones M1-M5 are implemented. Complete attribution UI, broader accessibility work, deployment, and user testing remain planned.
