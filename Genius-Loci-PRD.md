@@ -11,7 +11,7 @@
 
 ## 1. Product Vision
 
-Genius Loci is a web application that models a personalized growing season for a home gardener. The user specifies their location and selects up to 12 plants. The app then renders a full-page, scroll-driven narrative of their growing year — from soil warm-up through germination, sprout emergence, growth phases, blossom, fruit, and harvest — with each event anchored to real dates and driven by real climate data for their specific location.
+Genius Loci is a web application that models a personalized growing season for a home gardener. The user specifies their location and selects up to 6 plants. The app then renders a full-page, scroll-driven narrative of their growing year — from soil warm-up through germination, sprout emergence, growth phases, blossom, fruit, and harvest — with each event anchored to real dates and driven by real climate data for their specific location.
 
 As the user scrolls down, time advances. The illustration grows, dates and callouts appear, and the season unfolds. Side ribbons carry continuous environmental data — air temperature highs/lows, noon sun angle, and average precipitation — running alongside the plant story. An optional weed layer overlays the locally-common weed germination schedule on top of the main illustration.
 
@@ -26,7 +26,7 @@ The experience is part planner, part almanac, part illustrated story. It is base
        ↓
 2. Location confirmed — city, state, hardiness zone, last/first frost dates displayed
        ↓
-3. Plant Selector — browse and pick up to 12 plants (vegetables, herbs, flowers)
+3. Plant Selector — browse and pick up to 6 plants (vegetables, herbs, flowers)
        ↓
 4. Generate — app computes the full growing season model
        ↓
@@ -606,7 +606,7 @@ plants.forEach((sim) => {
 | FR-02 | Fetch and average 5 years of daily climate data to produce 365-point daily normals |
 | FR-03 | Compute and display last spring frost date and first fall frost date |
 | FR-04 | Present a browsable plant catalog with category filters and search |
-| FR-05 | Allow selection of 1–12 plants; enforce the maximum |
+| FR-05 | Allow selection of 1–6 plants; enforce the maximum |
 | FR-06 | Simulate the full 365-day growing season per plant using soil temp gating and GDD accumulation |
 | FR-07 | Render a scroll-driven narrative where scrolling advances through the calendar year |
 | FR-08 | Animate plant growth illustrations through each growth stage as the user scrolls |
@@ -628,7 +628,7 @@ plants.forEach((sim) => {
 | Climate API response (uncached) | < 4s |
 | Climate API response (cached) | < 300ms |
 | Scroll animation frame rate | 60fps on modern desktop Chrome/Safari |
-| Simulation computation time (client) | < 50ms for 12 plants |
+| Simulation computation time (client) | < 50ms for 6 plants |
 | Browser support | Chrome 115+, Safari 16+, Firefox 120+, Edge 115+ |
 | Responsive layout | Desktop and tablet; mobile is out of scope for v1 |
 | Accessibility | WCAG 2.1 AA for non-animated content; reduced-motion media query respected |

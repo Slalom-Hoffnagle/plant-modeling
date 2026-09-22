@@ -6,10 +6,9 @@ import { plants } from "@/lib/plants";
 import { dayToScrollY, scrollYToDay, TOTAL_SCROLL_HEIGHT } from "@/lib/scroll";
 import { simulateSeason } from "@/lib/simulator";
 import EventCallout from "@/components/EventCallout";
+import ClimateBackdrop from "@/components/ClimateBackdrop";
 import PlantLane from "@/components/PlantLane";
 import PlantReport from "@/components/PlantReport";
-import SunPrecipRibbon from "@/components/SunPrecipRibbon";
-import TempRibbon from "@/components/TempRibbon";
 
 type SeasonData = { climate: ClimateProfile; plantIds: string[] };
 
@@ -90,21 +89,24 @@ export default function GrowExperience() {
       </section>
 
       <section ref={stageRef} className="relative mx-auto min-h-[7300px] max-w-7xl border-t border-[#f3efe4]/15 px-6 sm:px-10 lg:px-16" aria-label="Growing season calendar">
-        <div className="grid min-h-[7300px] grid-cols-[48px_92px_1fr_48px] gap-2 py-8 md:grid-cols-[48px_92px_1fr_48px] lg:grid-cols-[64px_150px_1fr_64px] lg:gap-5">
-          <TempRibbon climate={season.climate} currentDay={currentDay} />
+        <div className="grid min-h-[7300px] grid-cols-[92px_1fr] gap-3 py-8 lg:grid-cols-[150px_1fr] lg:gap-5">
           <DateSpine climate={season.climate} currentDay={currentDay} />
-          <div className="relative overflow-hidden border-l border-[#f3efe4]/15 bg-[#244b42]/35">
-            <div className="absolute inset-x-0 top-1/2 border-t border-dashed border-[#e7bd72]/35" />
-            <div className="absolute left-6 top-6 font-mono text-[10px] uppercase tracking-[0.18em] text-[#f3efe4]/45">Plant story / 365 days</div>
-            <div className="absolute bottom-8 left-6 right-6 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.16em] text-[#f3efe4]/40"><span>Begin</span><span>Harvest horizon</span></div>
-            <div className="absolute left-0 right-0 h-px bg-[#e7bd72] transition-[top] duration-100" style={{ top: `${(dayToScrollY(currentDay) / TOTAL_SCROLL_HEIGHT) * 100}%` }} />
+          <div className="relative overflow-clip border-l border-[#f3efe4]/15 bg-[#244b42]/35">
+            <ClimateBackdrop climate={season.climate} />
+            <div className="absolute inset-x-0 top-1/2 z-[1] border-t border-dashed border-[#e7bd72]/25" />
+            <div className="absolute left-6 top-6 z-[1] font-mono text-[10px] uppercase tracking-[0.18em] text-[#f3efe4]/45">Plant story / 365 days</div>
+            <div className="absolute bottom-8 left-6 right-6 z-[1] flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.16em] text-[#f3efe4]/40"><span>Begin</span><span>Harvest horizon</span></div>
+            <div className="absolute left-0 right-0 z-[2] h-px bg-[#e7bd72] transition-[top] duration-100" style={{ top: `${(dayToScrollY(currentDay) / TOTAL_SCROLL_HEIGHT) * 100}%` }}>
+              <span className="absolute right-2 top-0 -translate-y-full bg-[#173b35]/90 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.08em] text-[#e7bd72]">
+                Date {formatDayNumeric(currentDay)} · {Math.round(season.climate.dailyTempMax[currentDay - 1] ?? 0)}° / {Math.round(season.climate.dailyTempMin[currentDay - 1] ?? 0)}° · {(season.climate.dailyPrecip[currentDay - 1] ?? 0).toFixed(2)}″
+              </span>
+            </div>
             {simulation && <div className="sticky top-[108px] z-10 flex h-[calc(100vh-150px)] min-h-[420px] flex-col justify-end px-4 pb-14 pt-20">
               <div className="absolute inset-x-4 top-4"><p className="font-mono text-[9px] uppercase tracking-[0.16em] text-[#f3efe4]/45">Live growth stage</p><p className="mt-1 font-serif text-2xl text-[#e7bd72]">{formatDay(currentDay)}</p></div>
               <div className="relative flex min-h-0 flex-1">{simulation.plants.map((plantSimulation) => <PlantLane key={plantSimulation.plant.id} simulation={plantSimulation} currentDay={currentDay} />)}</div>
               {simulation.keyEvents.map((event) => <EventCallout key={`${event.dayOfYear}-${event.label}`} event={event} visible={visibleEvents.some((visibleEvent) => visibleEvent.label === event.label)} />)}
             </div>}
           </div>
-          <SunPrecipRibbon climate={season.climate} currentDay={currentDay} />
         </div>
       </section>
     </main>
@@ -118,7 +120,7 @@ function DateSpine({ climate, currentDay }: { climate: ClimateProfile; currentDa
     {SEASONS.map((seasonMarker) => <div key={seasonMarker.label} className="absolute left-0 right-0 hidden -translate-y-1/2 lg:block" style={{ top: `${(dayToScrollY(seasonMarker.day) / TOTAL_SCROLL_HEIGHT) * 100}%` }}><span className="font-mono text-[9px] uppercase tracking-[0.12em] text-[#f3efe4]/40">{seasonMarker.label}</span></div>)}
     <Marker label="Last frost" day={climate.lastFrostDayOfYear} tone="warm" />
     <Marker label="First frost" day={climate.firstFrostDayOfYear} tone="cool" />
-    <div className="absolute left-0 right-0 -translate-y-1/2" style={{ top: `${(dayToScrollY(currentDay) / TOTAL_SCROLL_HEIGHT) * 100}%` }}><div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-[#e7bd72] ring-4 ring-[#e7bd72]/20" /><span className="font-mono text-[9px] uppercase tracking-[0.12em] text-[#e7bd72]">Today</span></div></div>
+    <div className="absolute left-0 right-0 -translate-y-1/2" style={{ top: `${(dayToScrollY(currentDay) / TOTAL_SCROLL_HEIGHT) * 100}%` }}><div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-[#e7bd72] ring-4 ring-[#e7bd72]/20" /><span className="font-mono text-[9px] uppercase tracking-[0.12em] text-[#e7bd72]">Date {formatDayNumeric(currentDay)}</span></div></div>
   </div>;
 }
 
@@ -127,7 +129,12 @@ function Marker({ label, day, tone }: { label: string; day: number; tone: "warm"
 }
 
 function formatDay(day: number) {
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(Date.UTC(2024, 0, day)));
+  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(Date.UTC(2023, 0, day)));
+}
+
+function formatDayNumeric(day: number) {
+  const date = new Date(Date.UTC(2023, 0, day));
+  return `${String(date.getUTCDate()).padStart(2, "0")}/${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
 function Metric({ label, value }: { label: string; value: string }) { return <div><p className="font-mono text-[10px] uppercase tracking-[0.15em] text-[#f3efe4]/45">{label}</p><p className="mt-2 font-serif text-2xl text-[#e7bd72]">{value}</p></div>; }

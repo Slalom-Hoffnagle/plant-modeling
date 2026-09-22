@@ -37,7 +37,7 @@ export function dayOfYear(date: Date): number {
 }
 
 export function formatDayOfYear(day: number): string {
-  const date = new Date(Date.UTC(2024, 0, day));
+  const date = new Date(Date.UTC(2023, 0, day));
   return new Intl.DateTimeFormat("en-US", {
     month: "long",
     day: "numeric",

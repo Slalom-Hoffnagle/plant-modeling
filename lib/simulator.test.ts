@@ -20,10 +20,10 @@ function syntheticClimate() {
 }
 
 describe("simulateSeason", () => {
-  it("simulates the three M1 catalog plants with 365 daily stages", () => {
+  it("simulates the complete catalog with 365 daily stages", () => {
     const simulation = simulateSeason(syntheticClimate(), plants);
 
-    expect(simulation.plants).toHaveLength(3);
+    expect(simulation.plants).toHaveLength(plants.length);
     expect(simulation.plants.every((plant) => plant.stages.length === 365)).toBe(true);
   });
 
