@@ -24,12 +24,12 @@ function stageIntervals(stages: PlantSimulation["stages"]): StageInterval[] {
   return intervals;
 }
 
-export default function PlantReport({ simulation, events }: { simulation: PlantSimulation; events: KeyEvent[] }) {
+export default function PlantReport({ simulation, events, open, onToggle }: { simulation: PlantSimulation; events: KeyEvent[]; open: boolean; onToggle: (open: boolean) => void }) {
   const { plant } = simulation;
   const intervals = stageIntervals(simulation.stages);
   const plantEvents = events.filter((event) => !event.plantId || event.plantId === plant.id);
 
-  return <details className="group border border-[#f3efe4]/15 bg-[#244b42] open:bg-[#1f453d]">
+  return <details open={open} onToggle={(event) => onToggle(event.currentTarget.open)} className="group border border-[#f3efe4]/15 bg-[#244b42] open:bg-[#1f453d]">
     <summary className="flex cursor-pointer list-none items-center justify-between gap-5 p-5 marker:hidden">
       <div><p className="font-mono text-[9px] uppercase tracking-[0.15em] text-[#e7bd72]">{plant.category} · {plant.lifecycle}</p><h3 className="mt-2 font-serif text-3xl">{plant.name}</h3><p className="mt-2 text-sm text-[#f3efe4]/55">{formatDay(simulation.plantDay)} → {formatDay(simulation.harvestEndDay)}</p></div>
       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#f3efe4]/25 font-mono text-xl text-[#e7bd72] group-open:rotate-45">+</span>
@@ -93,14 +93,6 @@ export default function PlantReport({ simulation, events }: { simulation: PlantS
         {plant.keyEvents.map((event) => <p key={event} className="mt-3 border-l-2 border-[#e7bd72] pl-3 text-sm text-[#f3efe4]/70">{event}</p>)}
       </ReportSection>
 
-      <ReportSection title="Visual morphology">
-        <DataGrid items={[
-          ["Stem count", String(plant.morphology.stemCount)], ["Stem curve", plant.morphology.stemCurve], ["Maximum height", `${plant.morphology.maxHeightPx}px`],
-          ["Leaf shape", plant.morphology.leafShape], ["Leaf size", plant.morphology.leafSize], ["Leaf arrangement", plant.morphology.leafArrangement],
-          ["Flower shape", plant.morphology.flowerShape], ["Flower color", plant.morphology.flowerColor], ["Fruit shape", plant.morphology.fruitShape],
-          ["Fruit color", plant.morphology.fruitColor], ["Stem color", plant.morphology.stemColor], ["Leaf color", plant.morphology.leafColor], ["Leaf variant", plant.morphology.leafColorVariant],
-        ]} />
-      </ReportSection>
     </div>
   </details>;
 }

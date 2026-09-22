@@ -10,13 +10,10 @@ function temperaturePosition(temperature: number): number {
 
 export default function ClimateBackdrop({ climate }: { climate: ClimateProfile }) {
   const precipitationMax = Math.max(0.1, ...climate.dailyPrecip);
-  const sunPoints = climate.dailyNoonSunAngle
-    .map((angle, index) => `${96 - (Math.min(90, Math.max(0, angle)) / 90) * 10},${(index / 364) * 100}`)
-    .join(" ");
 
   return <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-label="Daily temperature and precipitation graph">
     <div className="absolute inset-x-0 top-4 z-10 flex items-center justify-between px-5 font-mono text-[8px] uppercase tracking-[0.12em] text-[#f3efe4]/30">
-      <span>Daily low–high °F</span><span>Precipitation · sun</span>
+      <span>Daily low–high °F</span><span>Precipitation</span>
     </div>
 
     <div className="absolute inset-0 opacity-45" aria-hidden="true">
@@ -42,7 +39,6 @@ export default function ClimateBackdrop({ climate }: { climate: ClimateProfile }
 
     <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 h-full w-full opacity-25" aria-hidden="true">
       <line x1={temperaturePosition(32)} x2={temperaturePosition(32)} y1="0" y2="100" stroke="#f3efe4" strokeDasharray="1 1.5" strokeWidth="0.35" vectorEffect="non-scaling-stroke" />
-      <polyline points={sunPoints} fill="none" stroke="#e7bd72" strokeWidth="0.7" vectorEffect="non-scaling-stroke" />
     </svg>
 
     <div className="absolute inset-0 bg-gradient-to-r from-[#173b35]/45 via-transparent to-[#173b35]/35" />

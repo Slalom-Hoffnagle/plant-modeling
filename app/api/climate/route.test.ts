@@ -56,7 +56,7 @@ describe("GET /api/climate", () => {
     expect(profile.dailyTempMin).toHaveLength(365);
     expect(profile.dailySoilTemp).toHaveLength(365);
     expect(profile.dailyPrecip).toHaveLength(365);
-    expect(profile.dailyNoonSunAngle).toHaveLength(365);
+    expect(profile).not.toHaveProperty("dailyNoonSunAngle");
     expect(profile.frostFreeDays).toBeGreaterThanOrEqual(0);
   });
 

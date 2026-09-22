@@ -14,7 +14,14 @@ export default function PlantMorphology({ morphology, stage }: { morphology: Mor
     <line x1="80" x2="80" y1="170" y2="170" stroke="#a76745" strokeWidth="4" strokeLinecap="round" />
     {stage === "in_ground" && <circle cx="80" cy="166" r="4" fill="#e7bd72" />}
     {stage === "germinating" && <path d="M 70 168 Q 80 153 90 168" fill="none" stroke="#e7bd72" strokeWidth="3" strokeLinecap="round" />}
-    {stage === "indoor" && <g><rect x="63" y="145" width="34" height="22" rx="3" fill="#d9a15b" /><path d="M 68 145 L 72 128 Q 80 121 88 128 L 92 145" fill="#d5dfc5" stroke="#e7bd72" strokeWidth="2" /></g>}
+    {stage === "indoor" && <g>
+      <path d="M 62 88 V 101 M 98 88 V 101" stroke="#d5dfc5" strokeWidth="2" />
+      <rect x="54" y="101" width="52" height="10" rx="2" fill="#d9a15b" />
+      <path d="M 60 114 L 57 124 M 72 114 L 71 126 M 88 114 L 89 126 M 100 114 L 103 124" stroke="#e7bd72" strokeWidth="2" strokeLinecap="round" opacity="0.75" />
+      <path d="M 80 168 V 139" stroke={morphology.stemColor} strokeWidth="4" strokeLinecap="round" />
+      <path d="M 80 151 Q 68 136 58 143 Q 63 156 80 158" fill={morphology.leafColor} />
+      <path d="M 80 145 Q 92 130 103 138 Q 98 152 80 153" fill={morphology.leafColorVariant} />
+    </g>}
     {visible && <g>
       <path d={morphology.stemCurve === "vining" ? `M 80 168 Q 50 ${168 - height / 2} 82 ${168 - height}` : `M 80 168 Q ${morphology.stemCurve === "arching" ? 105 : 80} ${168 - height / 2} 80 ${168 - height}`} fill="none" stroke={morphology.stemColor} strokeWidth={morphology.stemCount === "many" ? 3 : 5} strokeLinecap="round" />
       {Array.from({ length: leafCount }, (_, index) => {

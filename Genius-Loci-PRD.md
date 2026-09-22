@@ -13,7 +13,7 @@
 
 Genius Loci is a web application that models a personalized growing season for a home gardener. The user specifies their location and selects up to 6 plants. The app then renders a full-page, scroll-driven narrative of their growing year — from soil warm-up through germination, sprout emergence, growth phases, blossom, fruit, and harvest — with each event anchored to real dates and driven by real climate data for their specific location.
 
-As the user scrolls down, time advances. The illustration grows, dates and callouts appear, and the season unfolds. Side ribbons carry continuous environmental data — air temperature highs/lows, noon sun angle, and average precipitation — running alongside the plant story. An optional weed layer overlays the locally-common weed germination schedule on top of the main illustration.
+As the user scrolls down, time advances. The illustrations grow, dates and callouts appear, and the season unfolds. A continuous climate backdrop carries daily air-temperature highs and lows plus average precipitation behind the plant lanes. An optional weed layer overlays the locally-common weed germination schedule on top of the main illustration.
 
 The experience is part planner, part almanac, part illustrated story. It is based on science but designed to feel alive.
 
@@ -122,25 +122,7 @@ Fetch the **most recent 5 complete calendar years** (e.g. 2020–2024). Average 
 
 ---
 
-### 3.4 Noon Sun Angle
-
-**Source:** Calculated — no API required  
-**Formula:** Solar noon altitude = 90° − |latitude − declination(dayOfYear)|  
-**Declination:** δ = 23.44° × sin((360/365) × (N − 81)) where N = day of year
-
-This is computed client-side for each of the 365 days using the user's latitude from the ZIP lookup. Output is a 365-point array of noon sun altitude angles (degrees above horizon), ranging from summer solstice maximum (~90° − |lat − 23.4°|) to winter solstice minimum (~90° − |lat + 23.4°|).
-
-**Implementation:**
-```typescript
-function noonSunAngle(dayOfYear: number, latitudeDeg: number): number {
-  const declinationDeg = 23.44 * Math.sin((Math.PI * 2 / 365) * (dayOfYear - 81))
-  return 90 - Math.abs(latitudeDeg - declinationDeg)
-}
-```
-
----
-
-### 3.5 Plant Growth Data
+### 3.4 Plant Growth Data
 
 **Primary source:** [OpenPlantDB](https://github.com/cwfrazier1/openplantdb) — CC0 public domain  
 294 garden plants, JSON format, fields include:
@@ -279,8 +261,7 @@ All heavy data fetching and normalization happens in a single Next.js API route.
 3. Fetch 5 years of daily ERA5-Land data from Open-Meteo
 4. For each day of year (1–365), average each variable across all matching calendar days in the 5-year window
 5. Derive frost dates from the averaged min temperature profile
-6. Compute the 365-point noon sun angle array from latitude
-7. Return a `ClimateProfile` containing all of the above
+6. Return a `ClimateProfile` containing all of the above
 
 **ClimateProfile shape:**
 
@@ -299,7 +280,6 @@ interface ClimateProfile {
   dailyTempMin: number[]       // °F daily low
   dailySoilTemp: number[]      // °F surface soil temp
   dailyPrecip: number[]        // inches precipitation
-  dailyNoonSunAngle: number[]  // degrees above horizon
 
   // Derived
   lastFrostDayOfYear: number   // Julian day 1–365
@@ -400,20 +380,17 @@ scrollPosition(dayOfYear) = (dayOfYear / 365) × totalScrollHeight
 │  HEADER  (sticky, 60px)                                             │
 │  App name · Location · Zone · Frost dates · Weed toggle            │
 └─────────────────────────────────────────────────────────────────────┘
-│  LEFT RIBBON  (fixed, 48px wide)                                    │
-│  • Day/night air temp (min/max band, color-coded)                   │
-│  • Scrolls with the page — updates continuously                     │
 ├──────────┬──────────────────────────────────────────────────────────┤
 │  DATE    │  MAIN STAGE                                              │
 │  SPINE   │  Plant growth illustration area                          │
 │  (fixed  │  • All selected plants grow here                        │
-│   60px)  │  • Weed layer overlays (when enabled)                   │
+│   60px)  │  • Plants stay anchored to the viewport bottom          │
+│          │  • Temperature and precipitation render behind lanes     │
+│          │  • Weed layer overlays (when enabled)                   │
 │          │  • Key event callouts float in from right               │
 │          │  • Month/season labels at major transitions             │
 ├──────────┴──────────────────────────────────────────────────────────┤
-│  RIGHT RIBBON  (fixed, 48px wide)                                   │
-│  • Noon sun angle arc (animated continuously)                       │
-│  • Average precipitation bar (daily value)                          │
+│  TRACKING LINE  • Date · daily high/low · precipitation            │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -427,7 +404,7 @@ A thin vertical column (left side of main stage, 60px wide) shows:
 
 ### 6.4 Plant growth illustration
 
-Each of the selected plants occupies a **lane** in the main stage. Up to 12 lanes are arranged horizontally across the stage width. Each lane is a vertical track that runs the full height of the scroll document.
+Each of the selected plants occupies a **lane** in the main stage. Up to 6 lanes are arranged horizontally across the stage width. The lane group remains sticky as the calendar scrolls, with each illustration and its soil baseline anchored to the bottom edge of the viewport. Plant names and growth-stage badges remain visible; redundant footer status labels are omitted.
 
 Within each lane, the plant illustration changes state as the user scrolls through its growth stages:
 - Pre-season: empty lane, faint soil line at bottom
@@ -461,26 +438,18 @@ When a key event day is crossed during scroll, a callout animates in from the ri
 - Optional action tip (e.g., "Time to side-dress with compost")
 - Callouts dismiss automatically as the user continues scrolling past them
 
-### 6.6 Left ribbon — Air temperature
+### 6.6 Climate backdrop — Air temperature
 
-A continuous vertical gradient band showing:
+A continuous field behind the plant lanes showing:
 - **Red/warm band:** daily high temperature (°F)
 - **Blue/cool band:** daily low temperature (°F)
 - The band between high and low is color-filled — wide band = large diurnal range
 - Frost threshold (32°F) marked as a horizontal dashed line across the ribbon
 - Scale: fixed °F axis (e.g. −10°F to 110°F) for the full ribbon height
-- Current day value shown as a floating label that moves as user scrolls
+- Current-day values shown on the horizontal tracking line
 
-### 6.7 Right ribbon — Sun angle & precipitation
+### 6.7 Climate backdrop — Precipitation
 
-Two stacked sub-ribbons on the right:
-
-**Top half — Noon sun angle:**
-- A small arc or semicircle that animates to show the sun's position at noon for the current scroll-day
-- Angle label updates continuously (e.g. "Sun: 52° above horizon")
-- Solstice/equinox annotations at the appropriate scroll positions
-
-**Bottom half — Precipitation:**
 - A thin vertical bar chart — each day's average precipitation shown as a horizontal bar extending inward
 - Color: blue for rain, white for snow (days where temp < 32°F)
 - Wet months (e.g. Pacific Northwest winters) vs. dry summers are immediately visible
@@ -529,14 +498,12 @@ When toggled on:
 │   ├── plants.ts                 ← Curated plant catalog (static data)
 │   ├── weeds.ts                  ← Weed catalog (static data)
 │   ├── simulator.ts              ← Growing season simulation engine
-│   ├── climate.ts                ← Climate data types + utilities
-│   └── solar.ts                  ← Noon sun angle calculation
+│   └── climate.ts                ← Climate data types + utilities
 ├── components/
 │   ├── PlantLane.tsx             ← Single plant lane within the scroll narrative
 │   ├── PlantMorphology.tsx       ← Procedural SVG plant renderer (parameterized per species)
 │   ├── DateSpine.tsx             ← Vertical date/month/season column
-│   ├── TempRibbon.tsx            ← Left air temperature ribbon
-│   ├── SunPrecipRibbon.tsx       ← Right sun angle + precipitation ribbon
+│   ├── ClimateBackdrop.tsx       ← Temperature + precipitation field
 │   ├── WeedLayer.tsx             ← Weed overlay (toggle-able)
 │   ├── EventCallout.tsx          ← Key event annotation component
 │   └── PlantSelector.tsx         ← Plant catalog UI
@@ -592,7 +559,7 @@ plants.forEach((sim) => {
 2. Fetch hardiness zone (`phzmapi.org`)
 3. Fetch 5 years of daily ERA5-Land data (Open-Meteo `/v1/archive`)
 4. Average each variable across 5 years to produce 365-point daily normals
-5. Compute derived values: frost dates, frostFreeDays, noonSunAngle array
+5. Compute derived values: frost dates and frostFreeDays
 6. Return `ClimateProfile` JSON
 7. Cache result for 24 hours
 
@@ -611,8 +578,8 @@ plants.forEach((sim) => {
 | FR-07 | Render a scroll-driven narrative where scrolling advances through the calendar year |
 | FR-08 | Animate plant growth illustrations through each growth stage as the user scrolls |
 | FR-09 | Show a vertical date spine with month names, week ticks, season labels, and frost markers |
-| FR-10 | Show a continuous left ribbon of daily high/low air temperature with the 32°F frost line marked |
-| FR-11 | Show a continuous right ribbon of noon sun angle (animated arc) and average daily precipitation |
+| FR-10 | Show continuous daily high/low air temperature with the 32°F frost line marked |
+| FR-11 | Show continuous average daily precipitation behind the plant lanes |
 | FR-12 | Generate key event callouts at the correct scroll positions for each plant |
 | FR-13 | Provide a toggleable weed layer showing region-appropriate weed germination windows |
 | FR-14 | Attribute Open-Meteo data per CC BY 4.0 license requirements |
@@ -685,8 +652,8 @@ Attribution for Open-Meteo must appear in the app footer.
 | M1 — Data layer | `/api/climate` route working; ClimateProfile validated against 5 test ZIPs; simulation engine unit-tested for 3 plants |
 | M2 — Navigation | ZIP entry → location confirm → plant selector → "generate" button → grow page shell |
 | M3 — Scroll scaffold | Scroll document at correct height; date spine rendering; scroll position correctly mapped to day-of-year |
-| M4 — Plant lanes | 12 lanes rendering; growth stage transitions triggering at correct scroll positions; key event callouts appearing |
-| M5 — Ribbons | Left temp ribbon and right sun/precip ribbon both rendering with live scroll-position data |
+| M4 — Plant lanes | Up to 6 bottom-anchored lanes rendering; growth stage transitions triggering at correct scroll positions; key event callouts appearing |
+| M5 — Climate backdrop | Temperature and precipitation fields rendering with live scroll-position data |
 | M6 — Weed layer | Toggle functional; weed bands rendering in correct date windows for user's region |
 | M7 — Polish | Reduced-motion support; error states; attribution footer; performance audit |
 | M8 — Deploy | Vercel production deploy; 5 user tests with real gardeners |

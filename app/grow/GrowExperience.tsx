@@ -38,6 +38,7 @@ export default function GrowExperience() {
   const [season, setSeason] = useState<SeasonData | null>(null);
   const [ready, setReady] = useState(false);
   const [currentDay, setCurrentDay] = useState(1);
+  const [openPlantId, setOpenPlantId] = useState<string | null>(null);
   const stageRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -80,12 +81,12 @@ export default function GrowExperience() {
       </header>
 
       <section className="mx-auto max-w-7xl px-6 pb-24 pt-20 sm:px-10 lg:px-16 lg:pt-28">
-        <div className="max-w-4xl"><p className="font-mono text-xs uppercase tracking-[0.24em] text-[#e7bd72]">Season model ready</p><h1 className="mt-6 font-serif text-6xl leading-[0.9] tracking-[-0.04em] sm:text-8xl">A year in your garden.</h1><p className="mt-8 max-w-2xl text-lg leading-8 text-[#f3efe4]/65">Scroll down to move through the calendar. The date spine keeps the year in view while the story space below makes room for what grows next.</p></div>
+        <div className="max-w-4xl"><p className="font-mono text-xs uppercase tracking-[0.24em] text-[#e7bd72]">Season model ready</p><h1 className="mt-6 font-serif text-6xl leading-[0.9] tracking-[-0.04em] sm:text-8xl">A year in your garden.</h1><p className="mt-8 max-w-2xl text-lg leading-8 text-[#f3efe4]/65">Scroll down to move through the calendar. Explore your garden and the key moments to a happy and healthy harvest.</p></div>
 
         <div className="mt-20 grid gap-6 border-y border-[#f3efe4]/15 py-8 sm:grid-cols-3"><Metric label="Last spring frost" value={season.climate.lastFrostDate} /><Metric label="First fall frost" value={season.climate.firstFrostDate} /><Metric label="Frost-free season" value={`${season.climate.frostFreeDays} days`} /></div>
 
         <div className="mt-16 flex items-end justify-between"><div><p className="font-mono text-xs uppercase tracking-[0.2em] text-[#e7bd72]">Your selection</p><h2 className="mt-3 font-serif text-4xl">{selectedPlants.length} plants in the model</h2></div><span className="font-mono text-xs uppercase tracking-[0.14em] text-[#f3efe4]/45">Jan 01 — Dec 31</span></div>
-        <div className="mt-8 space-y-3">{simulation?.plants.map((plantSimulation) => <PlantReport key={plantSimulation.plant.id} simulation={plantSimulation} events={simulation.keyEvents} />)}</div>
+        <div className="mt-8 space-y-3">{simulation?.plants.map((plantSimulation) => <PlantReport key={plantSimulation.plant.id} simulation={plantSimulation} events={simulation.keyEvents} open={openPlantId === plantSimulation.plant.id} onToggle={(open) => setOpenPlantId((current) => open ? plantSimulation.plant.id : current === plantSimulation.plant.id ? null : current)} />)}</div>
       </section>
 
       <section ref={stageRef} className="relative mx-auto min-h-[7300px] max-w-7xl border-t border-[#f3efe4]/15 px-6 sm:px-10 lg:px-16" aria-label="Growing season calendar">
@@ -94,15 +95,20 @@ export default function GrowExperience() {
           <div className="relative overflow-clip border-l border-[#f3efe4]/15 bg-[#244b42]/35">
             <ClimateBackdrop climate={season.climate} />
             <div className="absolute inset-x-0 top-1/2 z-[1] border-t border-dashed border-[#e7bd72]/25" />
-            <div className="absolute left-6 top-6 z-[1] font-mono text-[10px] uppercase tracking-[0.18em] text-[#f3efe4]/45">Plant story / 365 days</div>
             <div className="absolute bottom-8 left-6 right-6 z-[1] flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.16em] text-[#f3efe4]/40"><span>Begin</span><span>Harvest horizon</span></div>
             <div className="absolute left-0 right-0 z-[2] h-px bg-[#e7bd72] transition-[top] duration-100" style={{ top: `${(dayToScrollY(currentDay) / TOTAL_SCROLL_HEIGHT) * 100}%` }}>
-              <span className="absolute right-2 top-0 -translate-y-full bg-[#173b35]/90 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.08em] text-[#e7bd72]">
-                Date {formatDayNumeric(currentDay)} · {Math.round(season.climate.dailyTempMax[currentDay - 1] ?? 0)}° / {Math.round(season.climate.dailyTempMin[currentDay - 1] ?? 0)}° · {(season.climate.dailyPrecip[currentDay - 1] ?? 0).toFixed(2)}″
+              <span className="absolute left-2 top-0 -translate-y-full bg-[#173b35]/90 px-2 py-1 text-left font-mono text-[9px] uppercase tracking-[0.08em] text-[#e7bd72]">
+                H {Math.round(season.climate.dailyTempMax[currentDay - 1] ?? 0)}° / L {Math.round(season.climate.dailyTempMin[currentDay - 1] ?? 0)}°
+              </span>
+              <span className="absolute right-2 top-0 -translate-y-full bg-[#173b35]/90 px-2 py-1 text-right font-mono text-[9px] uppercase tracking-[0.08em] text-[#e7bd72]">
+                Precip: {(season.climate.dailyPrecip[currentDay - 1] ?? 0).toFixed(2)}
               </span>
             </div>
-            {simulation && <div className="sticky top-[108px] z-10 flex h-[calc(100vh-150px)] min-h-[420px] flex-col justify-end px-4 pb-14 pt-20">
-              <div className="absolute inset-x-4 top-4"><p className="font-mono text-[9px] uppercase tracking-[0.16em] text-[#f3efe4]/45">Live growth stage</p><p className="mt-1 font-serif text-2xl text-[#e7bd72]">{formatDay(currentDay)}</p></div>
+            {simulation && <div className="sticky top-[108px] z-10 flex h-[calc(100vh-108px)] min-h-[420px] flex-col justify-end px-4 pt-20">
+              <div className="absolute inset-x-4 top-0 bg-gradient-to-r from-[#f3efe4]/15 via-[#f3efe4]/[0.06] to-transparent px-3 pb-5 pt-3">
+                <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-[#f3efe4]/55">Live growth stage</p>
+                <p className="mt-1 font-serif text-2xl text-[#e7bd72]">{formatDay(currentDay)} · Day {currentDay}</p>
+              </div>
               <div className="relative flex min-h-0 flex-1">{simulation.plants.map((plantSimulation) => <PlantLane key={plantSimulation.plant.id} simulation={plantSimulation} currentDay={currentDay} />)}</div>
               {simulation.keyEvents.map((event) => <EventCallout key={`${event.dayOfYear}-${event.label}`} event={event} visible={visibleEvents.some((visibleEvent) => visibleEvent.label === event.label)} />)}
             </div>}
@@ -134,7 +140,7 @@ function formatDay(day: number) {
 
 function formatDayNumeric(day: number) {
   const date = new Date(Date.UTC(2023, 0, day));
-  return `${String(date.getUTCDate()).padStart(2, "0")}/${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+  return `${String(date.getUTCMonth() + 1).padStart(2, "0")}/${String(date.getUTCDate()).padStart(2, "0")}`;
 }
 
 function Metric({ label, value }: { label: string; value: string }) { return <div><p className="font-mono text-[10px] uppercase tracking-[0.15em] text-[#f3efe4]/45">{label}</p><p className="mt-2 font-serif text-2xl text-[#e7bd72]">{value}</p></div>; }

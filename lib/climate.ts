@@ -1,5 +1,3 @@
-import { buildSunAngleProfile } from "@/lib/solar";
-
 export interface ClimateProfile {
   zip: string;
   city: string;
@@ -12,7 +10,6 @@ export interface ClimateProfile {
   dailyTempMin: number[];
   dailySoilTemp: number[];
   dailyPrecip: number[];
-  dailyNoonSunAngle: number[];
   lastFrostDayOfYear: number;
   firstFrostDayOfYear: number;
   lastFrostDate: string;
@@ -94,12 +91,11 @@ export function deriveFrostDays(dailyTempMin: number[]): {
   };
 }
 
-export function createClimateProfile(input: Omit<ClimateProfile, "dailyNoonSunAngle" | "lastFrostDayOfYear" | "firstFrostDayOfYear" | "lastFrostDate" | "firstFrostDate" | "frostFreeDays"> & { dailyTempMin: number[] }): ClimateProfile {
+export function createClimateProfile(input: Omit<ClimateProfile, "lastFrostDayOfYear" | "firstFrostDayOfYear" | "lastFrostDate" | "firstFrostDate" | "frostFreeDays"> & { dailyTempMin: number[] }): ClimateProfile {
   const frostDays = deriveFrostDays(input.dailyTempMin);
 
   return {
     ...input,
-    dailyNoonSunAngle: buildSunAngleProfile(input.lat),
     ...frostDays,
     lastFrostDate: formatDayOfYear(frostDays.lastFrostDayOfYear),
     firstFrostDate: formatDayOfYear(frostDays.firstFrostDayOfYear),
