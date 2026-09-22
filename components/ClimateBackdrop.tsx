@@ -12,10 +12,6 @@ export default function ClimateBackdrop({ climate }: { climate: ClimateProfile }
   const precipitationMax = Math.max(0.1, ...climate.dailyPrecip);
 
   return <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-label="Daily temperature and precipitation graph">
-    <div className="absolute inset-x-0 top-4 z-10 flex items-center justify-between px-5 font-mono text-[8px] uppercase tracking-[0.12em] text-[#f3efe4]/30">
-      <span>Daily low–high °F</span><span>Precipitation</span>
-    </div>
-
     <div className="absolute inset-0 opacity-45" aria-hidden="true">
       {climate.dailyTempMax.map((high, index) => {
         const low = climate.dailyTempMin[index] ?? high;

@@ -2,34 +2,6 @@
 
 Genius Loci models a ZIP-specific growing year. It combines five complete years of daily climate observations with plant-specific soil-temperature and growing-degree-day requirements, then presents the result as a scrollable 365-day calendar.
 
-## Local Development
-
-Requirements:
-
-- Node.js 20 or newer
-- npm
-- Internet access for the public climate and location APIs
-
-```bash
-npm install
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000).
-
-No API keys or environment variables are required.
-
-## Validation
-
-```bash
-npm run typecheck
-npm run lint
-npm test
-npm run build
-```
-
-Tests use Vitest and cover climate normalization, the climate API route, plant recommendations and search, scroll/date conversion, and season simulation.
-
 ## Application Flow
 
 1. Enter a five-digit US ZIP code.

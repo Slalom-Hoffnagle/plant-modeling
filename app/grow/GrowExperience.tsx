@@ -127,7 +127,6 @@ export default function GrowExperience() {
           <div className="relative overflow-clip border-l border-[#f3efe4]/15 bg-[#244b42]/35">
             <ClimateBackdrop climate={season.climate} />
             <div className="absolute inset-x-0 top-1/2 z-[1] border-t border-dashed border-[#e7bd72]/25" />
-            <div className="absolute bottom-8 left-6 right-6 z-[1] flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.16em] text-[#f3efe4]/40"><span>Begin</span><span>Harvest horizon</span></div>
             <div className="absolute left-0 right-0 z-[2] h-px bg-[#e7bd72] transition-[top] duration-100" style={{ top: `${(dayToScrollY(currentDay) / TOTAL_SCROLL_HEIGHT) * 100}%` }}>
               <span className="absolute left-2 top-0 -translate-y-full bg-[#173b35]/90 px-2 py-1 text-left font-mono text-[9px] uppercase tracking-[0.08em] text-[#e7bd72]">
                 L {Math.round(season.climate.dailyTempMin[currentDay - 1] ?? 0)}° / H {Math.round(season.climate.dailyTempMax[currentDay - 1] ?? 0)}°
