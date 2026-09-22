@@ -39,6 +39,7 @@ export default function GrowExperience() {
   const [ready, setReady] = useState(false);
   const [currentDay, setCurrentDay] = useState(1);
   const [openPlantId, setOpenPlantId] = useState<string | null>(null);
+  const [highlightedEventIndex, setHighlightedEventIndex] = useState(0);
   const stageRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -48,25 +49,56 @@ export default function GrowExperience() {
   }, []);
 
   useEffect(() => {
+    let animationFrame = 0;
+
     function updateCurrentDay() {
+      animationFrame = 0;
       const stage = stageRef.current;
       if (!stage) return;
       const stageScrollY = window.scrollY - stage.offsetTop + window.innerHeight * 0.5;
       setCurrentDay(scrollYToDay(stageScrollY));
     }
 
+    function scheduleCurrentDayUpdate() {
+      if (animationFrame) return;
+      animationFrame = window.requestAnimationFrame(updateCurrentDay);
+    }
+
     updateCurrentDay();
-    window.addEventListener("scroll", updateCurrentDay, { passive: true });
-    window.addEventListener("resize", updateCurrentDay);
+    window.addEventListener("scroll", scheduleCurrentDayUpdate, { passive: true });
+    window.addEventListener("resize", scheduleCurrentDayUpdate);
     return () => {
-      window.removeEventListener("scroll", updateCurrentDay);
-      window.removeEventListener("resize", updateCurrentDay);
+      window.cancelAnimationFrame(animationFrame);
+      window.removeEventListener("scroll", scheduleCurrentDayUpdate);
+      window.removeEventListener("resize", scheduleCurrentDayUpdate);
     };
   }, [ready]);
 
   const selectedPlants = useMemo(() => season ? plants.filter((plant) => season.plantIds.includes(plant.id)) : [], [season]);
   const simulation = useMemo(() => season ? simulateSeason(season.climate, selectedPlants) : null, [season, selectedPlants]);
-  const visibleEvents = simulation?.keyEvents.filter((event) => event.dayOfYear <= currentDay).slice(-3) ?? [];
+
+  useEffect(() => {
+    const events = simulation?.keyEvents ?? [];
+    if (!events.length) return;
+    setHighlightedEventIndex((currentIndex) => {
+      if (events[currentIndex]?.dayOfYear === currentDay) return currentIndex;
+      const latestIndex = events.findLastIndex((event) => event.dayOfYear <= currentDay);
+      return latestIndex === -1 ? 0 : latestIndex;
+    });
+  }, [currentDay, simulation]);
+
+  const activeEvent = simulation?.keyEvents[highlightedEventIndex];
+
+  function scrollToEvent(eventIndex: number) {
+    const event = simulation?.keyEvents[eventIndex];
+    const stage = stageRef.current;
+    if (!event || !stage) return;
+    setHighlightedEventIndex(eventIndex);
+    const stageTop = stage.getBoundingClientRect().top + window.scrollY;
+    const targetY = stageTop + dayToScrollY(event.dayOfYear) - window.innerHeight * 0.5;
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.scrollTo({ top: targetY, behavior: reduceMotion ? "auto" : "smooth" });
+  }
 
   if (!ready) return <main className="min-h-screen bg-[#173b35]" />;
   if (!season) return <main className="min-h-screen bg-[#173b35] p-8 text-[#f3efe4]"><a href="/" className="font-mono text-xs uppercase tracking-[0.2em]">Start a garden model</a></main>;
@@ -98,19 +130,25 @@ export default function GrowExperience() {
             <div className="absolute bottom-8 left-6 right-6 z-[1] flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.16em] text-[#f3efe4]/40"><span>Begin</span><span>Harvest horizon</span></div>
             <div className="absolute left-0 right-0 z-[2] h-px bg-[#e7bd72] transition-[top] duration-100" style={{ top: `${(dayToScrollY(currentDay) / TOTAL_SCROLL_HEIGHT) * 100}%` }}>
               <span className="absolute left-2 top-0 -translate-y-full bg-[#173b35]/90 px-2 py-1 text-left font-mono text-[9px] uppercase tracking-[0.08em] text-[#e7bd72]">
-                H {Math.round(season.climate.dailyTempMax[currentDay - 1] ?? 0)}° / L {Math.round(season.climate.dailyTempMin[currentDay - 1] ?? 0)}°
+                L {Math.round(season.climate.dailyTempMin[currentDay - 1] ?? 0)}° / H {Math.round(season.climate.dailyTempMax[currentDay - 1] ?? 0)}°
               </span>
               <span className="absolute right-2 top-0 -translate-y-full bg-[#173b35]/90 px-2 py-1 text-right font-mono text-[9px] uppercase tracking-[0.08em] text-[#e7bd72]">
                 Precip: {(season.climate.dailyPrecip[currentDay - 1] ?? 0).toFixed(2)}
               </span>
             </div>
-            {simulation && <div className="sticky top-[108px] z-10 flex h-[calc(100vh-108px)] min-h-[420px] flex-col justify-end px-4 pt-20">
+            {simulation && <div className="sticky top-[108px] z-10 flex h-[calc(100vh-108px)] min-h-[420px] flex-col justify-end px-4 pt-32">
               <div className="absolute inset-x-4 top-0 bg-gradient-to-r from-[#f3efe4]/15 via-[#f3efe4]/[0.06] to-transparent px-3 pb-5 pt-3">
                 <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-[#f3efe4]/55">Live growth stage</p>
                 <p className="mt-1 font-serif text-2xl text-[#e7bd72]">{formatDay(currentDay)} · Day {currentDay}</p>
               </div>
+              <div className="absolute inset-x-4 top-[76px] flex h-12 overflow-hidden border-y border-[#e7bd72]/25 bg-[#173b35]/75 backdrop-blur-sm" aria-label="Growing moment highlight">
+                {activeEvent && <EventCallout event={activeEvent} />}
+                <div className="ml-auto flex shrink-0 border-l border-[#e7bd72]/25">
+                  <button type="button" onClick={() => scrollToEvent(highlightedEventIndex - 1)} disabled={highlightedEventIndex <= 0} aria-label="Previous growing moment" className="flex w-10 items-center justify-center font-mono text-sm text-[#e7bd72] transition-colors hover:bg-[#f3efe4]/10 disabled:cursor-not-allowed disabled:text-[#f3efe4]/20">&lt;</button>
+                  <button type="button" onClick={() => scrollToEvent(highlightedEventIndex + 1)} disabled={highlightedEventIndex >= simulation.keyEvents.length - 1} aria-label="Next growing moment" className="flex w-10 items-center justify-center border-l border-[#e7bd72]/25 font-mono text-sm text-[#e7bd72] transition-colors hover:bg-[#f3efe4]/10 disabled:cursor-not-allowed disabled:text-[#f3efe4]/20">&gt;</button>
+                </div>
+              </div>
               <div className="relative flex min-h-0 flex-1">{simulation.plants.map((plantSimulation) => <PlantLane key={plantSimulation.plant.id} simulation={plantSimulation} currentDay={currentDay} />)}</div>
-              {simulation.keyEvents.map((event) => <EventCallout key={`${event.dayOfYear}-${event.label}`} event={event} visible={visibleEvents.some((visibleEvent) => visibleEvent.label === event.label)} />)}
             </div>}
           </div>
         </div>
@@ -121,7 +159,6 @@ export default function GrowExperience() {
 
 function DateSpine({ climate, currentDay }: { climate: ClimateProfile; currentDay: number }) {
   return <div className="relative border-r border-[#f3efe4]/15 pr-3 lg:pr-5">
-    <div className="absolute left-0 top-0 font-mono text-[10px] uppercase tracking-[0.18em] text-[#e7bd72]">2026</div>
     {MONTHS.map((month) => <div key={month.name} className="absolute left-0 right-0" style={{ top: `${(dayToScrollY(month.day) / TOTAL_SCROLL_HEIGHT) * 100}%` }}><div className="flex items-center gap-2"><span className="h-px w-3 bg-[#e7bd72]" /><span className="font-serif text-sm lg:text-lg">{month.name}</span></div><div className="mt-1 h-px bg-[#f3efe4]/20" /></div>)}
     {SEASONS.map((seasonMarker) => <div key={seasonMarker.label} className="absolute left-0 right-0 hidden -translate-y-1/2 lg:block" style={{ top: `${(dayToScrollY(seasonMarker.day) / TOTAL_SCROLL_HEIGHT) * 100}%` }}><span className="font-mono text-[9px] uppercase tracking-[0.12em] text-[#f3efe4]/40">{seasonMarker.label}</span></div>)}
     <Marker label="Last frost" day={climate.lastFrostDayOfYear} tone="warm" />
