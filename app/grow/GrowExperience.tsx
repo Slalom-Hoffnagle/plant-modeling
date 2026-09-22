@@ -121,8 +121,8 @@ export default function GrowExperience() {
         <div className="mt-8 space-y-3">{simulation?.plants.map((plantSimulation) => <PlantReport key={plantSimulation.plant.id} simulation={plantSimulation} events={simulation.keyEvents} open={openPlantId === plantSimulation.plant.id} onToggle={(open) => setOpenPlantId((current) => open ? plantSimulation.plant.id : current === plantSimulation.plant.id ? null : current)} />)}</div>
       </section>
 
-      <section ref={stageRef} className="relative mx-auto min-h-[7300px] max-w-7xl border-t border-[#f3efe4]/15 px-6 sm:px-10 lg:px-16" aria-label="Growing season calendar">
-        <div className="grid min-h-[7300px] grid-cols-[92px_1fr] gap-3 py-8 lg:grid-cols-[150px_1fr] lg:gap-5">
+      <section ref={stageRef} className="relative mx-auto max-w-7xl border-t border-[#f3efe4]/15 px-6 sm:px-10 lg:px-16" style={{ minHeight: TOTAL_SCROLL_HEIGHT }} aria-label="Growing season calendar">
+        <div className="grid grid-cols-[92px_1fr] gap-3 py-8 lg:grid-cols-[150px_1fr] lg:gap-5" style={{ minHeight: TOTAL_SCROLL_HEIGHT }}>
           <DateSpine climate={season.climate} currentDay={currentDay} />
           <div className="relative overflow-clip border-l border-[#f3efe4]/15 bg-[#244b42]/35">
             <ClimateBackdrop climate={season.climate} />

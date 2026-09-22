@@ -3,8 +3,8 @@
 
 **Author:** Carl Hoffnagle  
 **Date:** September 2026  
-**Status:** Draft  
-**Stack:** Next.js 14 · TypeScript · Tailwind CSS · GSAP ScrollTrigger  
+**Status:** Implementation baseline — M1–M5 complete; M6–M8 planned  
+**Stack:** Next.js 14 · React 18 · TypeScript · Tailwind CSS · native browser scrolling  
 **Deployment:** Vercel  
 
 ---
@@ -13,7 +13,7 @@
 
 Genius Loci is a web application that models a personalized growing season for a home gardener. The user specifies their location and selects up to 6 plants. The app then renders a full-page, scroll-driven narrative of their growing year — from soil warm-up through germination, sprout emergence, growth phases, blossom, fruit, and harvest — with each event anchored to real dates and driven by real climate data for their specific location.
 
-As the user scrolls down, time advances. The illustrations grow, dates and callouts appear, and the season unfolds. A continuous climate backdrop carries daily air-temperature highs and lows plus average precipitation behind the plant lanes. An optional weed layer overlays the locally-common weed germination schedule on top of the main illustration.
+As the user scrolls down, time advances. The illustrations grow, dates and callouts appear, and the season unfolds. A continuous climate backdrop carries daily air-temperature highs and lows plus average precipitation behind the plant lanes. A locally relevant weed layer remains planned for a later milestone.
 
 The experience is part planner, part almanac, part illustrated story. It is based on science but designed to feel alive.
 
@@ -30,9 +30,7 @@ The experience is part planner, part almanac, part illustrated story. It is base
        ↓
 4. Generate — app computes the full growing season model
        ↓
-5. Scroll narrative — user scrolls down through the year
-       ↓
-   [Optional] Toggle weed layer on/off at any time
+5. Scroll narrative — user scrolls through the year or navigates between key moments
 ```
 
 ---
@@ -365,20 +363,20 @@ Key events across all plants are collected, deduplicated by date, and sorted. Da
 
 The page is a vertical scroll document. The top is January 1. The bottom is December 31. Scrolling down through the page is traveling through the year. Plants grow visually as the user scrolls. Dates tick past. Environmental ribbons run alongside.
 
-The **scroll driver** is GSAP ScrollTrigger. Each plant element, each callout, each date marker is pinned to a scroll position that corresponds to its calendar day. The math:
+The scroll driver is the browser's native document scroll. A sticky, viewport-height stage reads the current scroll position and maps it to a calendar day. Event controls use native smooth scrolling to move to an exact modeled date, with an immediate fallback for reduced-motion preferences. The math is centralized in `lib/scroll.ts`:
 
 ```
-scrollPosition(dayOfYear) = (dayOfYear / 365) × totalScrollHeight
+scrollPosition(dayOfYear) = ((dayOfYear - 1) / 364) × totalScrollHeight
 ```
 
-`totalScrollHeight` is set large enough to give the season room to breathe — typically 10× the viewport height (e.g. 6000–8000px on a 700px viewport) so that scrolling through the full year takes 15–25 seconds of deliberate scrolling.
+`totalScrollHeight` is `DAYS_IN_YEAR × PIXELS_PER_DAY`, currently 7,300px. Scroll-driven React updates are coalesced to one per animation frame.
 
 ### 6.2 Page anatomy
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │  HEADER  (sticky, 60px)                                             │
-│  App name · Location · Zone · Frost dates · Weed toggle            │
+│  App name · Location · current day                                 │
 └─────────────────────────────────────────────────────────────────────┘
 ├──────────┬──────────────────────────────────────────────────────────┤
 │  DATE    │  MAIN STAGE                                              │
@@ -386,8 +384,7 @@ scrollPosition(dayOfYear) = (dayOfYear / 365) × totalScrollHeight
 │  (fixed  │  • All selected plants grow here                        │
 │   60px)  │  • Plants stay anchored to the viewport bottom          │
 │          │  • Temperature and precipitation render behind lanes     │
-│          │  • Weed layer overlays (when enabled)                   │
-│          │  • Key event callouts float in from right               │
+│          │  • One key event highlight with previous/next controls  │
 │          │  • Month/season labels at major transitions             │
 ├──────────┴──────────────────────────────────────────────────────────┤
 │  TRACKING LINE  • Date · daily high/low · precipitation            │
@@ -396,11 +393,11 @@ scrollPosition(dayOfYear) = (dayOfYear / 365) × totalScrollHeight
 
 ### 6.3 Date spine
 
-A thin vertical column (left side of main stage, 60px wide) shows:
+A vertical column on the left side of the main stage shows:
 - Month names at the start of each month (large, muted)
-- Week tick marks every 7 days
 - Season labels (Spring, Summer, Fall, Winter) at solstice/equinox days
 - Last frost marker (↑ Last Frost) and First frost marker (↓ First Frost) as prominent horizontal rules
+- A live numeric date marker aligned to the current day
 
 ### 6.4 Plant growth illustration
 
@@ -408,7 +405,7 @@ Each of the selected plants occupies a **lane** in the main stage. Up to 6 lanes
 
 Within each lane, the plant illustration changes state as the user scrolls through its growth stages:
 - Pre-season: empty lane, faint soil line at bottom
-- Indoor: a small indoor pot icon appears at the left edge (separate from the main lane)
+- Indoor: an emerging plant appears beneath a suspended grow light
 - In-ground through seedling: small sprout at soil line
 - Vegetative: plant grows taller, gains leaves
 - Flowering: blossoms appear
@@ -417,11 +414,11 @@ Within each lane, the plant illustration changes state as the user scrolls throu
 - Declining/done: plant fades, withers
 
 **Implementation approach for illustrations:**  
-All plant illustrations are procedurally generated — no authored artwork, no external image assets. Each plant is drawn entirely from parameterized SVG shapes and paths generated in code, animated by GSAP as the user scrolls through growth stages.
+All plant illustrations are procedurally generated — no authored artwork or external image assets. Each plant is drawn entirely from parameterized SVG shapes and paths generated in code. React selects the modeled daily stage, and CSS transitions smooth visual state changes.
 
 Each plant has a `PlantMorphology` config object that defines its visual character: stem count, branching angle, leaf shape (oval / lanceolate / lobed / compound), leaf size, flower shape (none / single / cluster / umbel), fruit shape (none / round / elongated / pod), and a color palette (stem, leaf, flower, fruit). These parameters vary per species and drive the procedural SVG renderer.
 
-The renderer produces a layered SVG for each growth stage. Stage transitions are animated by GSAP: element `height`, `scale`, `opacity`, and path `d` attribute morphing between stages. No images are loaded. No artwork is produced by hand.
+The renderer produces a layered SVG for each growth stage. No images are loaded and no artwork is produced by hand.
 
 Example morphology configs:
 - **Tomato:** single upright stem, compound leaves, yellow flower cluster, round red fruit
@@ -431,12 +428,13 @@ Example morphology configs:
 
 ### 6.5 Key event callouts
 
-When a key event day is crossed during scroll, a callout animates in from the right side of the main stage:
-- Icon (seed, sprout, sun, scissors, snowflake)
-- Plant name + event name
-- Date
-- Optional action tip (e.g., "Time to side-dress with compost")
-- Callouts dismiss automatically as the user continues scrolling past them
+The sticky stage shows one key event at a time in a compact highlight bar:
+- Event type badge
+- Event label
+- Day of year
+- Previous and next controls that smoothly scroll to the modeled event date
+
+Events sharing a date remain individually navigable.
 
 ### 6.6 Climate backdrop — Air temperature
 
@@ -454,7 +452,7 @@ A continuous field behind the plant lanes showing:
 - Color: blue for rain, white for snow (days where temp < 32°F)
 - Wet months (e.g. Pacific Northwest winters) vs. dry summers are immediately visible
 
-### 6.8 Weed layer
+### 6.8 Weed layer — planned (M6)
 
 When toggled on:
 - A semi-transparent red/amber overlay appears behind the plant lanes
@@ -473,22 +471,24 @@ When toggled on:
 |---|---|---|
 | Framework | Next.js 14 (App Router) | Vercel-native; API routes for data fetching |
 | Language | TypeScript | Strict mode |
-| Styling | Tailwind CSS | Utility-first; custom CSS for ribbon animations |
-| Scroll animation | GSAP + ScrollTrigger | Industry standard for scroll-driven narratives; handles pinning, scrubbing, and timeline sequencing |
-| Plant illustrations | SVG (inline, animated) | Stage-based SVGs per plant; animated by GSAP |
-| State | React `useState` / `useContext` | No external state library needed for MVP |
+| Styling | Tailwind CSS | Utility-first styling and CSS transitions |
+| Scroll behavior | Native document scroll + sticky positioning | Calendar updates are coalesced with `requestAnimationFrame`; event controls use native smooth scrolling |
+| Plant illustrations | Procedural inline SVG | Stage-based SVGs parameterized per plant |
+| State | React state + browser storage | Active season in `sessionStorage`; recent plant IDs in `localStorage` |
 | Deployment | Vercel | Zero-config Next.js; edge caching on climate API |
 
-### 7.2 Directory structure
+### 7.2 Implemented directory structure
 
 ```
 /
 ├── app/
-│   ├── page.tsx                  ← Landing: ZIP entry + location confirm
+│   ├── page.tsx                  ← Landing and ZIP entry
 │   ├── select/
-│   │   └── page.tsx              ← Plant selector
+│   │   ├── page.tsx
+│   │   └── SelectExperience.tsx  ← Location confirmation and plant selector
 │   ├── grow/
-│   │   └── page.tsx              ← Scroll narrative (main experience)
+│   │   ├── page.tsx
+│   │   └── GrowExperience.tsx    ← Scroll narrative and event navigation
 │   ├── layout.tsx
 │   ├── globals.css
 │   └── api/
@@ -496,59 +496,33 @@ When toggled on:
 │           └── route.ts          ← Climate data endpoint
 ├── lib/
 │   ├── plants.ts                 ← Curated plant catalog (static data)
-│   ├── weeds.ts                  ← Weed catalog (static data)
 │   ├── simulator.ts              ← Growing season simulation engine
-│   └── climate.ts                ← Climate data types + utilities
+│   ├── climate.ts                ← Climate data types + utilities
+│   ├── scroll.ts                 ← Shared calendar/scroll dimensions
+│   ├── plantSearch.ts
+│   └── plantRecommendations.ts
 ├── components/
 │   ├── PlantLane.tsx             ← Single plant lane within the scroll narrative
 │   ├── PlantMorphology.tsx       ← Procedural SVG plant renderer (parameterized per species)
-│   ├── DateSpine.tsx             ← Vertical date/month/season column
 │   ├── ClimateBackdrop.tsx       ← Temperature + precipitation field
-│   ├── WeedLayer.tsx             ← Weed overlay (toggle-able)
 │   ├── EventCallout.tsx          ← Key event annotation component
-│   └── PlantSelector.tsx         ← Plant catalog UI
-├── data/
-│   ├── plants.json               ← Plant catalog (~55 entries)
-│   └── weeds.json                ← Weed catalog (~15 entries)
-└── public/
-    └── (no illustration assets — all visuals are procedurally generated in code)
+│   └── PlantReport.tsx            ← Expandable simulation report
+└── Genius-Loci-PRD.md
 ```
 
-### 7.3 GSAP ScrollTrigger pattern
+### 7.3 Native scroll mapping pattern
 
 ```typescript
-// Pseudocode — each plant lane registers its own ScrollTrigger
-import gsap from 'gsap'
-import ScrollTrigger from 'gsap/ScrollTrigger'
+export const PIXELS_PER_DAY = 20
+export const TOTAL_SCROLL_HEIGHT = DAYS_IN_YEAR * PIXELS_PER_DAY
 
-gsap.registerPlugin(ScrollTrigger)
-
-// Total scroll document height (set on the scroll container element)
-const TOTAL_HEIGHT = 365 * 20 // 20px per day = 7300px total
-
-// Convert a Julian day to a scroll position
-function dayToScrollY(day: number): number {
-  return (day / 365) * TOTAL_HEIGHT
+export function dayToScrollY(dayOfYear: number): number {
+  const day = Math.min(DAYS_IN_YEAR, Math.max(1, dayOfYear))
+  return ((day - 1) / (DAYS_IN_YEAR - 1)) * TOTAL_SCROLL_HEIGHT
 }
 
-// For each plant, create a timeline pinned to its growth window
-plants.forEach((sim) => {
-  const tl = gsap.timeline({
-    scrollTrigger: {
-      trigger: '#scroll-container',
-      start: `top+=${dayToScrollY(sim.germinationDay)} top`,
-      end: `top+=${dayToScrollY(sim.seasonEndDay)} top`,
-      scrub: true,
-    }
-  })
-
-  // Animate plant illustration height, opacity, stage transitions
-  tl.to(`#lane-${sim.plant.id} .plant-illustration`, {
-    height: '80%',
-    duration: 1,
-    ease: 'none'
-  })
-})
+// The grow view derives currentDay from window.scrollY and stage geometry.
+// Highlight controls call window.scrollTo({ top: targetY, behavior: 'smooth' }).
 ```
 
 ### 7.4 API route responsibilities
@@ -567,23 +541,23 @@ plants.forEach((sim) => {
 
 ## 8. Functional Requirements
 
-| ID | Requirement |
-|---|---|
-| FR-01 | Accept a 5-digit US ZIP code and resolve to city, state, lat/lng, and hardiness zone |
-| FR-02 | Fetch and average 5 years of daily climate data to produce 365-point daily normals |
-| FR-03 | Compute and display last spring frost date and first fall frost date |
-| FR-04 | Present a browsable plant catalog with category filters and search |
-| FR-05 | Allow selection of 1–6 plants; enforce the maximum |
-| FR-06 | Simulate the full 365-day growing season per plant using soil temp gating and GDD accumulation |
-| FR-07 | Render a scroll-driven narrative where scrolling advances through the calendar year |
-| FR-08 | Animate plant growth illustrations through each growth stage as the user scrolls |
-| FR-09 | Show a vertical date spine with month names, week ticks, season labels, and frost markers |
-| FR-10 | Show continuous daily high/low air temperature with the 32°F frost line marked |
-| FR-11 | Show continuous average daily precipitation behind the plant lanes |
-| FR-12 | Generate key event callouts at the correct scroll positions for each plant |
-| FR-13 | Provide a toggleable weed layer showing region-appropriate weed germination windows |
-| FR-14 | Attribute Open-Meteo data per CC BY 4.0 license requirements |
-| FR-15 | Run without requiring user authentication or data persistence |
+| ID | Requirement | Status |
+|---|---|---|
+| FR-01 | Accept a 5-digit US ZIP code and resolve to city, state, lat/lng, and hardiness zone | Implemented |
+| FR-02 | Fetch and average 5 years of daily climate data to produce 365-point daily normals | Implemented |
+| FR-03 | Compute and display last spring frost date and first fall frost date | Implemented |
+| FR-04 | Present a browsable plant catalog with category filters and global search | Implemented |
+| FR-05 | Allow selection of 1–6 plants; enforce the maximum | Implemented |
+| FR-06 | Simulate the full 365-day growing season per plant using soil temp gating and GDD accumulation | Implemented |
+| FR-07 | Render a scroll-driven narrative where scrolling advances through the calendar year | Implemented |
+| FR-08 | Transition procedural plant illustrations through each modeled growth stage | Implemented |
+| FR-09 | Show a date spine with month names, season labels, live date, and frost markers | Implemented |
+| FR-10 | Show continuous daily high/low air temperature with the 32°F frost line marked | Implemented |
+| FR-11 | Show continuous average daily precipitation behind the plant lanes | Implemented |
+| FR-12 | Generate key events and provide one-at-a-time navigation to their dates | Implemented |
+| FR-13 | Provide a toggleable weed layer showing region-appropriate weed germination windows | Planned (M6) |
+| FR-14 | Attribute Open-Meteo data per CC BY 4.0 license requirements | Planned (M7) |
+| FR-15 | Run without authentication or server-side saved gardens; use browser storage for active/recent selections | Implemented |
 
 ---
 
@@ -597,24 +571,24 @@ plants.forEach((sim) => {
 | Scroll animation frame rate | 60fps on modern desktop Chrome/Safari |
 | Simulation computation time (client) | < 50ms for 6 plants |
 | Browser support | Chrome 115+, Safari 16+, Firefox 120+, Edge 115+ |
-| Responsive layout | Desktop and tablet; mobile is out of scope for v1 |
-| Accessibility | WCAG 2.1 AA for non-animated content; reduced-motion media query respected |
+| Responsive layout | Desktop, tablet, and mobile |
+| Accessibility | WCAG review remains planned; event navigation respects reduced-motion preferences |
 
 ---
 
 ## 10. Open Questions for Development
 
-1. **Plant illustrations:** ~~Resolved.~~ All plant visuals are procedurally generated SVG — no authored assets, no photo processing. Each species has a `PlantMorphology` config in the plant catalog (static data file) that parameterizes its visual character. The `PlantMorphology.tsx` component reads this config and renders the correct SVG geometry for the current growth stage, animated by GSAP. See Section 6.4 and the `PlantMorphology` interface in Section 3.5 for detail. The `/public/illustrations/` directory does not exist.
+1. **Plant illustrations:** ~~Resolved.~~ All plant visuals are procedurally generated SVG. Each species has a `PlantMorphology` config that parameterizes its visual character. `PlantMorphology.tsx` renders the geometry for the current React-selected growth stage, with CSS transitions between states.
 
 2. **Scroll document height:** 20px per day (7300px total) is a starting point. User testing will determine whether the season needs more or less room. This is a single constant to tune.
 
-3. **GSAP license:** ~~Resolved.~~ This is a personal project. GSAP ScrollTrigger is licensed freely for personal and open-source use. No licensing action required.
+3. **Scroll implementation:** ~~Resolved.~~ Native scrolling and sticky positioning meet the current interaction and performance requirements; no scroll-animation dependency is used.
 
 4. **Multiple frost dates:** ~~Resolved.~~ The 5-year average single-date approach is accepted for v1. If user feedback surfaces problems in high-altitude or coastal climates with high interannual variability, a frost date range display can be added in a later iteration.
 
 5. **Plant catalog completeness:** ~~Resolved.~~ OSU Extension degree-day models are the primary GDD source. Where per-variety GDD data is unavailable, fall back to `daysToMaturity × estimatedDailyGDD` derived from the location's growing season profile. This is an accepted approximation for v1.
 
-6. **Weed geographic precision:** ~~Resolved.~~ 6-region state-based mapping is accepted for v1. The USDA PLANTS database or county-level extension records can improve precision in a later iteration.
+6. **Weed geographic precision:** Open for M6. A state-based regional model is the current proposal; county-level extension records may improve precision later.
 
 ---
 
@@ -628,14 +602,13 @@ plants.forEach((sim) => {
 | api.zippopotam.us | Free public use | None required |
 | Weed data (extension services) | Public domain | None required |
 
-Attribution for Open-Meteo must appear in the app footer.
+Attribution for Open-Meteo must appear in the app footer. This UI remains planned for M7.
 
 ---
 
 ## 12. Out of Scope — v1
 
 - User accounts or saved gardens
-- Mobile layout
 - Push notifications or frost alerts
 - Monetization
 - Soil amendment or irrigation recommendations
@@ -645,19 +618,19 @@ Attribution for Open-Meteo must appear in the app footer.
 
 ---
 
-## 13. Suggested Build Milestones
+## 13. Build Milestones
 
-| Milestone | Deliverable |
-|---|---|
-| M1 — Data layer | `/api/climate` route working; ClimateProfile validated against 5 test ZIPs; simulation engine unit-tested for 3 plants |
-| M2 — Navigation | ZIP entry → location confirm → plant selector → "generate" button → grow page shell |
-| M3 — Scroll scaffold | Scroll document at correct height; date spine rendering; scroll position correctly mapped to day-of-year |
-| M4 — Plant lanes | Up to 6 bottom-anchored lanes rendering; growth stage transitions triggering at correct scroll positions; key event callouts appearing |
-| M5 — Climate backdrop | Temperature and precipitation fields rendering with live scroll-position data |
-| M6 — Weed layer | Toggle functional; weed bands rendering in correct date windows for user's region |
-| M7 — Polish | Reduced-motion support; error states; attribution footer; performance audit |
-| M8 — Deploy | Vercel production deploy; 5 user tests with real gardeners |
+| Milestone | Deliverable | Status |
+|---|---|---|
+| M1 — Data layer | `/api/climate` route, normalized ClimateProfile, and simulation tests | Complete |
+| M2 — Navigation | ZIP entry → location confirmation → plant selector → grow view | Complete |
+| M3 — Scroll scaffold | Shared scroll dimensions, date spine, and day-of-year mapping | Complete |
+| M4 — Plant lanes | Up to 6 bottom-anchored lanes, growth stages, and navigable key events | Complete |
+| M5 — Climate backdrop | Daily temperature and precipitation fields with live values | Complete |
+| M6 — Weed layer | Regional weed data, toggle, and date-window bands | Planned |
+| M7 — Polish | Complete reduced-motion coverage, error-state review, attribution footer, accessibility and performance audits | In progress |
+| M8 — Deploy | Production deployment and 5 tests with gardeners | Planned |
 
 ---
 
-*End of Document — Genius Loci PRD v1.0 — All open questions resolved*
+*End of Document — Genius Loci PRD v1.0 — implementation status updated September 2026*

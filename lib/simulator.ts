@@ -1,4 +1,4 @@
-import type { ClimateProfile } from "@/lib/climate";
+import { DAYS_IN_YEAR, type ClimateProfile } from "@/lib/climate";
 import type { Plant } from "@/lib/plants";
 
 export type GrowthStage =
@@ -42,7 +42,7 @@ function firstSoilReadyDay(climate: ClimateProfile, plant: Plant): number {
   const startDay = plant.frostTolerant ? 1 : climate.lastFrostDayOfYear;
   return climate.dailySoilTemp.findIndex((temperature, index) =>
     index + 1 >= startDay && temperature >= plant.soilTempMinGermination,
-  ) + 1 || 365;
+  ) + 1 || DAYS_IN_YEAR;
 }
 
 function stageForDay(simulation: PlantSimulation, day: number): GrowthStage {
@@ -73,16 +73,16 @@ function simulatePlant(climate: ClimateProfile, plant: Plant): PlantSimulation {
     ? Math.max(1, climate.lastFrostDayOfYear - plant.indoorStartWeeksBefore * 7)
     : null;
   const plantDay = firstSoilReadyDay(climate, plant);
-  const germinationDay = Math.min(365, plantDay + Math.ceil((plant.daysToGerminationMin + plant.daysToGerminationMax) / 2));
-  const cumulativeGdd = Array.from({ length: 365 }, () => 0);
+  const germinationDay = Math.min(DAYS_IN_YEAR, plantDay + Math.ceil((plant.daysToGerminationMin + plant.daysToGerminationMax) / 2));
+  const cumulativeGdd = Array.from({ length: DAYS_IN_YEAR }, () => 0);
 
-  for (let index = germinationDay - 1; index < 365; index += 1) {
+  for (let index = germinationDay - 1; index < DAYS_IN_YEAR; index += 1) {
     const averageTemperature = (climate.dailyTempMax[index] + climate.dailyTempMin[index]) / 2;
     cumulativeGdd[index] = (index > germinationDay - 1 ? cumulativeGdd[index - 1] : 0) + Math.max(0, averageTemperature - plant.gddBase);
   }
 
-  const harvestStartDay = cumulativeGdd.findIndex((gdd, index) => index + 1 >= germinationDay && gdd >= plant.gddToFirstHarvest) + 1 || 365;
-  const harvestEndDay = Math.min(365, harvestStartDay + plant.harvestWindowDays);
+  const harvestStartDay = cumulativeGdd.findIndex((gdd, index) => index + 1 >= germinationDay && gdd >= plant.gddToFirstHarvest) + 1 || DAYS_IN_YEAR;
+  const harvestEndDay = Math.min(DAYS_IN_YEAR, harvestStartDay + plant.harvestWindowDays);
   const seasonEndDay = plant.frostTolerant
     ? Math.min(harvestEndDay, climate.firstFrostDayOfYear + 21)
     : Math.min(harvestEndDay, climate.firstFrostDayOfYear);
@@ -98,7 +98,7 @@ function simulatePlant(climate: ClimateProfile, plant: Plant): PlantSimulation {
     cumulativeGdd,
     stages: [],
   };
-  simulation.stages = Array.from({ length: 365 }, (_, index) => stageForDay(simulation, index + 1));
+  simulation.stages = Array.from({ length: DAYS_IN_YEAR }, (_, index) => stageForDay(simulation, index + 1));
   return simulation;
 }
 

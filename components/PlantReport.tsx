@@ -1,4 +1,5 @@
 import type { KeyEvent, PlantSimulation } from "@/lib/simulator";
+import { DAYS_IN_YEAR } from "@/lib/climate";
 
 type StageInterval = { stage: string; start: number; end: number };
 
@@ -85,7 +86,7 @@ export default function PlantReport({ simulation, events, open, onToggle }: { si
           ["At harvest end", formatGdd(simulation, simulation.harvestEndDay)],
           ["At season end", formatGdd(simulation, simulation.seasonEndDay)],
         ]} />
-        <details className="mt-4 border-t border-[#f3efe4]/10 pt-3"><summary className="cursor-pointer font-mono text-[9px] uppercase tracking-[0.12em] text-[#e7bd72]">View all 365 daily cumulative GDD values</summary><div className="mt-3 max-h-64 overflow-auto"><table className="w-full text-left font-mono text-[10px]"><thead className="sticky top-0 bg-[#1f453d] text-[#f3efe4]/45"><tr><th className="py-2 font-normal">Day</th><th className="py-2 font-normal">Date</th><th className="py-2 text-right font-normal">Cumulative GDD</th></tr></thead><tbody>{simulation.cumulativeGdd.map((gdd, index) => <tr key={index} className="border-t border-[#f3efe4]/10"><td className="py-1">{index + 1}</td><td className="py-1">{formatDay(index + 1).split(" (")[0]}</td><td className="py-1 text-right">{gdd.toFixed(2)}</td></tr>)}</tbody></table></div></details>
+        <details className="mt-4 border-t border-[#f3efe4]/10 pt-3"><summary className="cursor-pointer font-mono text-[9px] uppercase tracking-[0.12em] text-[#e7bd72]">View all {DAYS_IN_YEAR} daily cumulative GDD values</summary><div className="mt-3 max-h-64 overflow-auto"><table className="w-full text-left font-mono text-[10px]"><thead className="sticky top-0 bg-[#1f453d] text-[#f3efe4]/45"><tr><th className="py-2 font-normal">Day</th><th className="py-2 font-normal">Date</th><th className="py-2 text-right font-normal">Cumulative GDD</th></tr></thead><tbody>{simulation.cumulativeGdd.map((gdd, index) => <tr key={index} className="border-t border-[#f3efe4]/10"><td className="py-1">{index + 1}</td><td className="py-1">{formatDay(index + 1).split(" (")[0]}</td><td className="py-1 text-right">{gdd.toFixed(2)}</td></tr>)}</tbody></table></div></details>
       </ReportSection>
 
       <ReportSection title="Events and care notes">

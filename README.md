@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Genius Loci
 
-## Getting Started
+Genius Loci models a ZIP-specific growing year. It combines five complete years of daily climate observations with plant-specific soil-temperature and growing-degree-day requirements, then presents the result as a scrollable 365-day calendar.
 
-First, run the development server:
+## Local Development
+
+Requirements:
+
+- Node.js 20 or newer
+- npm
+- Internet access for the public climate and location APIs
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+No API keys or environment variables are required.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Validation
 
-## Learn More
+```bash
+npm run typecheck
+npm run lint
+npm test
+npm run build
+```
 
-To learn more about Next.js, take a look at the following resources:
+Tests use Vitest and cover climate normalization, the climate API route, plant recommendations and search, scroll/date conversion, and season simulation.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Application Flow
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Enter a five-digit US ZIP code.
+2. Review the resolved location, hardiness zone, and frost dates.
+3. Search or browse the 55-plant catalog and select up to six plants.
+4. Generate a full-year simulation.
+5. Scroll through daily climate conditions, growth stages, and key planting or harvest moments.
 
-## Deploy on Vercel
+## Architecture
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- `app/api/climate/route.ts`: resolves ZIP and hardiness data, fetches historical climate observations, creates daily normals, and caches profiles for 24 hours.
+- `lib/climate.ts`: climate types, calendar-day normalization, and frost derivation.
+- `lib/plants.ts`: curated plant catalog and morphology configuration.
+- `lib/simulator.ts`: pure TypeScript soil-temperature and GDD simulation.
+- `lib/scroll.ts`: shared day-to-scroll conversion and calendar dimensions.
+- `app/select/SelectExperience.tsx`: catalog search, recommendations, and plant selection.
+- `app/grow/GrowExperience.tsx`: scroll-driven calendar and event navigation.
+- `components/ClimateBackdrop.tsx`: daily temperature and precipitation field.
+- `components/PlantMorphology.tsx`: procedural inline SVG plants.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The calendar uses native browser scrolling, a sticky viewport-height stage, and React state derived from the current scroll position. Highlight controls use native smooth scrolling and respect reduced-motion preferences.
+
+## Data Sources
+
+- [Zippopotam.us](https://www.zippopotam.us/) for ZIP-to-location lookup
+- [PHZM API](https://phzmapi.org/) for USDA hardiness zones
+- [Open-Meteo Historical Weather API](https://open-meteo.com/en/docs/historical-weather-api) for air temperature, shallow soil temperature, and precipitation
+
+The API requests the five most recent complete calendar years and normalizes them into 365 daily values. Leap day is omitted.
+
+## Browser Storage
+
+- `sessionStorage["genius-loci-season"]` holds the active climate profile and selected plant IDs for the current tab.
+- `localStorage["genius-loci-recent-plants"]` holds up to 12 recently selected plant IDs for recommendation ordering.
+
+There are no user accounts or server-side saved gardens.
+
+## Product Scope
+
+[Genius-Loci-PRD.md](Genius-Loci-PRD.md) records the product requirements and implementation status. Milestones M1-M5 are implemented. Weed modeling, complete attribution UI, broader accessibility work, deployment, and user testing remain planned.

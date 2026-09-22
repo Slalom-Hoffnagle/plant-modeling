@@ -1,4 +1,4 @@
-import type { ClimateProfile } from "@/lib/climate";
+import { DAYS_IN_YEAR, type ClimateProfile } from "@/lib/climate";
 
 const TEMP_MIN = -10;
 const TEMP_MAX = 110;
@@ -22,8 +22,8 @@ export default function ClimateBackdrop({ climate }: { climate: ClimateProfile }
         const lowPosition = temperaturePosition(low);
         const highPosition = Math.max(0.4, temperaturePosition(high));
         const lowShare = Math.min(100, (lowPosition / highPosition) * 100);
-        const top = (index / 365) * 100;
-        const barHeight = 72 / 365;
+        const top = (index / DAYS_IN_YEAR) * 100;
+        const barHeight = 72 / DAYS_IN_YEAR;
         const precipitation = Math.max(0, climate.dailyPrecip[index] ?? 0);
         const precipitationWidth = (precipitation / precipitationMax) * 28;
         const isSnow = low < 32;

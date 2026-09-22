@@ -1,4 +1,4 @@
-import type { ClimateProfile } from "@/lib/climate";
+import { DAYS_IN_YEAR, type ClimateProfile } from "@/lib/climate";
 import type { Plant, PlantCategory } from "@/lib/plants";
 
 export const PLANT_CATEGORIES: PlantCategory[] = ["vegetable", "herb", "flower"];
@@ -8,7 +8,7 @@ function locationScore(plant: Plant, climate: ClimateProfile): number {
     const afterFrost = plant.frostTolerant || index + 1 >= climate.lastFrostDayOfYear;
     return afterFrost && temperature >= plant.soilTempMinGermination;
   });
-  const firstReadyDay = firstReadyIndex === -1 ? 365 : firstReadyIndex + 1;
+  const firstReadyDay = firstReadyIndex === -1 ? DAYS_IN_YEAR : firstReadyIndex + 1;
   const usableSeason = Math.max(0, climate.firstFrostDayOfYear - firstReadyDay);
   const maturityFit = usableSeason - plant.daysToMaturity;
 
